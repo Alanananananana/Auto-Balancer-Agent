@@ -1,0 +1,65 @@
+{
+    "FighterBehavior": {
+        "checkpoints": [
+            {
+                "steps": 4999998,
+                "file_path": "results\\FighterRun15\\FighterBehavior\\FighterBehavior-4999998.onnx",
+                "reward": -1.5332579019225456,
+                "creation_time": 1771519588.5649889,
+                "auxillary_file_paths": [
+                    "results\\FighterRun15\\FighterBehavior\\FighterBehavior-4999998.pt"
+                ]
+            },
+            {
+                "steps": 5000126,
+                "file_path": "results\\FighterRun15\\FighterBehavior\\FighterBehavior-5000126.onnx",
+                "reward": -1.5332579019225456,
+                "creation_time": 1771519589.2941594,
+                "auxillary_file_paths": [
+                    "results\\FighterRun15\\FighterBehavior\\FighterBehavior-5000126.pt"
+                ]
+            },
+            {
+                "steps": 5021236,
+                "file_path": "results\\FighterRun15\\FighterBehavior\\FighterBehavior-5021236.onnx",
+                "reward": null,
+                "creation_time": 1771576539.345156,
+                "auxillary_file_paths": [
+                    "results\\FighterRun15\\FighterBehavior\\FighterBehavior-5021236.pt"
+                ]
+            },
+            {
+                "steps": 5045020,
+                "file_path": "results\\FighterRun15\\FighterBehavior\\FighterBehavior-5045020.onnx",
+                "reward": -0.5965712874506911,
+                "creation_time": 1771583664.8695464,
+                "auxillary_file_paths": [
+                    "results\\FighterRun15\\FighterBehavior\\FighterBehavior-5045020.pt"
+                ]
+            },
+            {
+                "steps": 5075936,
+                "file_path": "results\\FighterRun15\\FighterBehavior\\FighterBehavior-5075936.onnx",
+                "reward": null,
+                "creation_time": 1771584244.793005,
+                "auxillary_file_paths": [
+                    "results\\FighterRun15\\FighterBehavior\\FighterBehavior-5075936.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 5075936,
+            "file_path": "results\\FighterRun15\\FighterBehavior.onnx",
+            "reward": null,
+            "creation_time": 1771584244.793005,
+            "auxillary_file_paths": [
+                "results\\FighterRun15\\FighterBehavior\\FighterBehavior-5075936.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.1.0",
+        "torch_version": "2.9.1+cpu"
+    }
+}

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f02f18f99dc6ce84abbbb9bd83e498e9, type: 3}
+  m_Name: P1_Config
+  m_EditorClassIdentifier: 
+  isAI: 1
+  stats: {fileID: 11400000, guid: 8479d212becca0f44bae4a07552b54eb, type: 2}
+  weapon: {fileID: 11400000, guid: e9cfb595cc0e26e459047679afa6ce9f, type: 2}
+  applyOptionsOverrides: 0
+  fighterPrefab: {fileID: 3958427495898656406, guid: d316b7cf4c83abb469936105a362d2a6, type: 3}

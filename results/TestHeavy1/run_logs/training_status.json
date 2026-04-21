@@ -1,0 +1,47 @@
+{
+    "FighterBehavior": {
+        "checkpoints": [
+            {
+                "steps": 499954,
+                "file_path": "results\\TestHeavy1\\FighterBehavior\\FighterBehavior-499954.onnx",
+                "reward": -0.5916387609516581,
+                "creation_time": 1775681511.2118094,
+                "auxillary_file_paths": [
+                    "results\\TestHeavy1\\FighterBehavior\\FighterBehavior-499954.pt"
+                ]
+            },
+            {
+                "steps": 999982,
+                "file_path": "results\\TestHeavy1\\FighterBehavior\\FighterBehavior-999982.onnx",
+                "reward": -0.4220700040459633,
+                "creation_time": 1775682589.9309087,
+                "auxillary_file_paths": [
+                    "results\\TestHeavy1\\FighterBehavior\\FighterBehavior-999982.pt"
+                ]
+            },
+            {
+                "steps": 1027074,
+                "file_path": "results\\TestHeavy1\\FighterBehavior\\FighterBehavior-1027074.onnx",
+                "reward": -0.5587627255743501,
+                "creation_time": 1775682702.1653855,
+                "auxillary_file_paths": [
+                    "results\\TestHeavy1\\FighterBehavior\\FighterBehavior-1027074.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 1027074,
+            "file_path": "results\\TestHeavy1\\FighterBehavior.onnx",
+            "reward": -0.5587627255743501,
+            "creation_time": 1775682702.1653855,
+            "auxillary_file_paths": [
+                "results\\TestHeavy1\\FighterBehavior\\FighterBehavior-1027074.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.10.0+cpu"
+    }
+}

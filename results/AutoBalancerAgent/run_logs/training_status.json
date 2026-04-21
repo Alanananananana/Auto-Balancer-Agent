@@ -1,0 +1,65 @@
+{
+    "AutoBalancerAgent": {
+        "checkpoints": [
+            {
+                "steps": 37610,
+                "file_path": "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-37610.onnx",
+                "reward": 14.221345051740988,
+                "creation_time": 1776750615.6380517,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-37610.pt"
+                ]
+            },
+            {
+                "steps": 45683,
+                "file_path": "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-45683.onnx",
+                "reward": 10.797040911849786,
+                "creation_time": 1776775357.1127174,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-45683.pt"
+                ]
+            },
+            {
+                "steps": 45759,
+                "file_path": "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-45759.onnx",
+                "reward": 10.951953304441352,
+                "creation_time": 1776775642.4338794,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-45759.pt"
+                ]
+            },
+            {
+                "steps": 45845,
+                "file_path": "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-45845.onnx",
+                "reward": -0.82710412387238,
+                "creation_time": 1776778676.8643332,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-45845.pt"
+                ]
+            },
+            {
+                "steps": 46176,
+                "file_path": "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-46176.onnx",
+                "reward": -0.9634863608193182,
+                "creation_time": 1776780481.5741751,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-46176.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 46176,
+            "file_path": "results\\AutoBalancerAgent\\AutoBalancerAgent.onnx",
+            "reward": -0.9634863608193182,
+            "creation_time": 1776780481.5741751,
+            "auxillary_file_paths": [
+                "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-46176.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.11.0+cpu"
+    }
+}

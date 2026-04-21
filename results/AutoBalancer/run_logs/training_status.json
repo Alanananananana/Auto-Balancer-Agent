@@ -1,0 +1,56 @@
+{
+    "AutoBalancerAgent": {
+        "checkpoints": [
+            {
+                "steps": 8647,
+                "file_path": "results\\AutoBalancer\\AutoBalancerAgent\\AutoBalancerAgent-8647.onnx",
+                "reward": -0.011334437503204451,
+                "creation_time": 1776362113.725457,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancer\\AutoBalancerAgent\\AutoBalancerAgent-8647.pt"
+                ]
+            },
+            {
+                "steps": 8749,
+                "file_path": "results\\AutoBalancer\\AutoBalancerAgent\\AutoBalancerAgent-8749.onnx",
+                "reward": 0.02729913238070759,
+                "creation_time": 1776362725.2955275,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancer\\AutoBalancerAgent\\AutoBalancerAgent-8749.pt"
+                ]
+            },
+            {
+                "steps": 13403,
+                "file_path": "results\\AutoBalancer\\AutoBalancerAgent\\AutoBalancerAgent-13403.onnx",
+                "reward": -0.012178760938839463,
+                "creation_time": 1776373961.992448,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancer\\AutoBalancerAgent\\AutoBalancerAgent-13403.pt"
+                ]
+            },
+            {
+                "steps": 14272,
+                "file_path": "results\\AutoBalancer\\AutoBalancerAgent\\AutoBalancerAgent-14272.onnx",
+                "reward": 0.00786369461759119,
+                "creation_time": 1776436863.80801,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancer\\AutoBalancerAgent\\AutoBalancerAgent-14272.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 14272,
+            "file_path": "results\\AutoBalancer\\AutoBalancerAgent.onnx",
+            "reward": 0.00786369461759119,
+            "creation_time": 1776436863.80801,
+            "auxillary_file_paths": [
+                "results\\AutoBalancer\\AutoBalancerAgent\\AutoBalancerAgent-14272.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.11.0+cpu"
+    }
+}

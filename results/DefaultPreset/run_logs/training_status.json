@@ -1,0 +1,123 @@
+{
+    "FighterA": {
+        "checkpoints": [
+            {
+                "steps": 3499998,
+                "file_path": "results\\DefaultPreset\\FighterA\\FighterA-3499998.onnx",
+                "reward": -1.0134242698084563,
+                "creation_time": 1776615440.621135,
+                "auxillary_file_paths": [
+                    "results\\DefaultPreset\\FighterA\\FighterA-3499998.pt"
+                ]
+            },
+            {
+                "steps": 3999987,
+                "file_path": "results\\DefaultPreset\\FighterA\\FighterA-3999987.onnx",
+                "reward": -0.85883956069925,
+                "creation_time": 1776617366.374481,
+                "auxillary_file_paths": [
+                    "results\\DefaultPreset\\FighterA\\FighterA-3999987.pt"
+                ]
+            },
+            {
+                "steps": 4499958,
+                "file_path": "results\\DefaultPreset\\FighterA\\FighterA-4499958.onnx",
+                "reward": -0.8540174989029765,
+                "creation_time": 1776619336.0007222,
+                "auxillary_file_paths": [
+                    "results\\DefaultPreset\\FighterA\\FighterA-4499958.pt"
+                ]
+            },
+            {
+                "steps": 4999991,
+                "file_path": "results\\DefaultPreset\\FighterA\\FighterA-4999991.onnx",
+                "reward": -0.9031391682302845,
+                "creation_time": 1776621288.2117484,
+                "auxillary_file_paths": [
+                    "results\\DefaultPreset\\FighterA\\FighterA-4999991.pt"
+                ]
+            },
+            {
+                "steps": 5000183,
+                "file_path": "results\\DefaultPreset\\FighterA\\FighterA-5000183.onnx",
+                "reward": -0.9031391682302845,
+                "creation_time": 1776621290.5138934,
+                "auxillary_file_paths": [
+                    "results\\DefaultPreset\\FighterA\\FighterA-5000183.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 5000183,
+            "file_path": "results\\DefaultPreset\\FighterA.onnx",
+            "reward": -0.9031391682302845,
+            "creation_time": 1776621290.5138934,
+            "auxillary_file_paths": [
+                "results\\DefaultPreset\\FighterA\\FighterA-5000183.pt"
+            ]
+        }
+    },
+    "FighterB": {
+        "checkpoints": [
+            {
+                "steps": 3499998,
+                "file_path": "results\\DefaultPreset\\FighterB\\FighterB-3499998.onnx",
+                "reward": -0.5267057808497074,
+                "creation_time": 1776615442.0812645,
+                "auxillary_file_paths": [
+                    "results\\DefaultPreset\\FighterB\\FighterB-3499998.pt"
+                ]
+            },
+            {
+                "steps": 3999987,
+                "file_path": "results\\DefaultPreset\\FighterB\\FighterB-3999987.onnx",
+                "reward": -0.4573591113747919,
+                "creation_time": 1776617367.6312878,
+                "auxillary_file_paths": [
+                    "results\\DefaultPreset\\FighterB\\FighterB-3999987.pt"
+                ]
+            },
+            {
+                "steps": 4499958,
+                "file_path": "results\\DefaultPreset\\FighterB\\FighterB-4499958.onnx",
+                "reward": -1.0568798007443547,
+                "creation_time": 1776619337.3138928,
+                "auxillary_file_paths": [
+                    "results\\DefaultPreset\\FighterB\\FighterB-4499958.pt"
+                ]
+            },
+            {
+                "steps": 4999991,
+                "file_path": "results\\DefaultPreset\\FighterB\\FighterB-4999991.onnx",
+                "reward": null,
+                "creation_time": 1776621289.7090676,
+                "auxillary_file_paths": [
+                    "results\\DefaultPreset\\FighterB\\FighterB-4999991.pt"
+                ]
+            },
+            {
+                "steps": 5000055,
+                "file_path": "results\\DefaultPreset\\FighterB\\FighterB-5000055.onnx",
+                "reward": null,
+                "creation_time": 1776621291.548572,
+                "auxillary_file_paths": [
+                    "results\\DefaultPreset\\FighterB\\FighterB-5000055.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 5000055,
+            "file_path": "results\\DefaultPreset\\FighterB.onnx",
+            "reward": null,
+            "creation_time": 1776621291.548572,
+            "auxillary_file_paths": [
+                "results\\DefaultPreset\\FighterB\\FighterB-5000055.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.11.0+cpu"
+    }
+}

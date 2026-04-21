@@ -1,0 +1,47 @@
+{
+    "name": "root",
+    "metadata": {
+        "timer_format_version": "0.1.0",
+        "start_time_seconds": "1775776833",
+        "python_version": "3.10.3 (tags/v3.10.3:a342a49, Mar 16 2022, 13:07:40) [MSC v.1929 64 bit (AMD64)]",
+        "command_line_arguments": "C:\\Users\\alant\\Desktop\\NewAI\\Sword-fighting AI\\.venv_export\\Scripts\\mlagents-learn .\\Assets\\training\\trainer_config.yaml --run-id=test",
+        "mlagents_version": "0.30.0",
+        "mlagents_envs_version": "0.30.0",
+        "communication_protocol_version": "1.5.0",
+        "pytorch_version": "2.11.0+cpu",
+        "numpy_version": "1.21.2",
+        "end_time_seconds": "1775776871"
+    },
+    "total": 37.75181100005284,
+    "count": 1,
+    "self": 0.003150900127366185,
+    "children": {
+        "run_training.setup": {
+            "total": 0.04994899989105761,
+            "count": 1,
+            "self": 0.04994899989105761
+        },
+        "TrainerController.start_learning": {
+            "total": 37.698711100034416,
+            "count": 1,
+            "self": 0.0003464999608695507,
+            "children": {
+                "TrainerController._reset_env": {
+                    "total": 37.69835049984977,
+                    "count": 1,
+                    "self": 37.69835049984977
+                },
+                "trainer_threads": {
+                    "total": 1.300126314163208e-06,
+                    "count": 1,
+                    "self": 1.300126314163208e-06
+                },
+                "TrainerController._save_models": {
+                    "total": 1.2800097465515137e-05,
+                    "count": 1,
+                    "self": 1.2800097465515137e-05
+                }
+            }
+        }
+    }
+}

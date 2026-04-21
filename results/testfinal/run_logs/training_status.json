@@ -1,0 +1,123 @@
+{
+    "FighterB": {
+        "checkpoints": [
+            {
+                "steps": 3499960,
+                "file_path": "results\\testfinal\\FighterB\\FighterB-3499960.onnx",
+                "reward": -0.5481891767787082,
+                "creation_time": 1775805652.0559525,
+                "auxillary_file_paths": [
+                    "results\\testfinal\\FighterB\\FighterB-3499960.pt"
+                ]
+            },
+            {
+                "steps": 3999985,
+                "file_path": "results\\testfinal\\FighterB\\FighterB-3999985.onnx",
+                "reward": -0.584020468328769,
+                "creation_time": 1775807884.8897083,
+                "auxillary_file_paths": [
+                    "results\\testfinal\\FighterB\\FighterB-3999985.pt"
+                ]
+            },
+            {
+                "steps": 4499999,
+                "file_path": "results\\testfinal\\FighterB\\FighterB-4499999.onnx",
+                "reward": -0.6952485760122957,
+                "creation_time": 1775810172.962463,
+                "auxillary_file_paths": [
+                    "results\\testfinal\\FighterB\\FighterB-4499999.pt"
+                ]
+            },
+            {
+                "steps": 4999990,
+                "file_path": "results\\testfinal\\FighterB\\FighterB-4999990.onnx",
+                "reward": -0.7390204938765811,
+                "creation_time": 1775812487.7639923,
+                "auxillary_file_paths": [
+                    "results\\testfinal\\FighterB\\FighterB-4999990.pt"
+                ]
+            },
+            {
+                "steps": 5000023,
+                "file_path": "results\\testfinal\\FighterB\\FighterB-5000023.onnx",
+                "reward": -0.7580395968931649,
+                "creation_time": 1775812489.5140178,
+                "auxillary_file_paths": [
+                    "results\\testfinal\\FighterB\\FighterB-5000023.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 5000023,
+            "file_path": "results\\testfinal\\FighterB.onnx",
+            "reward": -0.7580395968931649,
+            "creation_time": 1775812489.5140178,
+            "auxillary_file_paths": [
+                "results\\testfinal\\FighterB\\FighterB-5000023.pt"
+            ]
+        }
+    },
+    "FighterA": {
+        "checkpoints": [
+            {
+                "steps": 3499960,
+                "file_path": "results\\testfinal\\FighterA\\FighterA-3499960.onnx",
+                "reward": -0.5278068606326461,
+                "creation_time": 1775805652.8690963,
+                "auxillary_file_paths": [
+                    "results\\testfinal\\FighterA\\FighterA-3499960.pt"
+                ]
+            },
+            {
+                "steps": 3999985,
+                "file_path": "results\\testfinal\\FighterA\\FighterA-3999985.onnx",
+                "reward": -0.6138294780868622,
+                "creation_time": 1775807885.916321,
+                "auxillary_file_paths": [
+                    "results\\testfinal\\FighterA\\FighterA-3999985.pt"
+                ]
+            },
+            {
+                "steps": 4499999,
+                "file_path": "results\\testfinal\\FighterA\\FighterA-4499999.onnx",
+                "reward": -0.5703068146446966,
+                "creation_time": 1775810173.9866781,
+                "auxillary_file_paths": [
+                    "results\\testfinal\\FighterA\\FighterA-4499999.pt"
+                ]
+            },
+            {
+                "steps": 4999990,
+                "file_path": "results\\testfinal\\FighterA\\FighterA-4999990.onnx",
+                "reward": -0.5401144156401808,
+                "creation_time": 1775812488.7746506,
+                "auxillary_file_paths": [
+                    "results\\testfinal\\FighterA\\FighterA-4999990.pt"
+                ]
+            },
+            {
+                "steps": 5000023,
+                "file_path": "results\\testfinal\\FighterA\\FighterA-5000023.onnx",
+                "reward": -0.49614251733702774,
+                "creation_time": 1775812490.5074804,
+                "auxillary_file_paths": [
+                    "results\\testfinal\\FighterA\\FighterA-5000023.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 5000023,
+            "file_path": "results\\testfinal\\FighterA.onnx",
+            "reward": -0.49614251733702774,
+            "creation_time": 1775812490.5074804,
+            "auxillary_file_paths": [
+                "results\\testfinal\\FighterA\\FighterA-5000023.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.11.0+cpu"
+    }
+}

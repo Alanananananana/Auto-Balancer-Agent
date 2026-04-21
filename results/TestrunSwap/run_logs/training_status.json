@@ -1,0 +1,47 @@
+{
+    "FighterBehavior": {
+        "checkpoints": [
+            {
+                "steps": 499944,
+                "file_path": "results\\TestrunSwap\\FighterBehavior\\FighterBehavior-499944.onnx",
+                "reward": -0.5871889385860414,
+                "creation_time": 1775685762.8868654,
+                "auxillary_file_paths": [
+                    "results\\TestrunSwap\\FighterBehavior\\FighterBehavior-499944.pt"
+                ]
+            },
+            {
+                "steps": 999952,
+                "file_path": "results\\TestrunSwap\\FighterBehavior\\FighterBehavior-999952.onnx",
+                "reward": -0.6563984835520387,
+                "creation_time": 1775686570.366624,
+                "auxillary_file_paths": [
+                    "results\\TestrunSwap\\FighterBehavior\\FighterBehavior-999952.pt"
+                ]
+            },
+            {
+                "steps": 1025102,
+                "file_path": "results\\TestrunSwap\\FighterBehavior\\FighterBehavior-1025102.onnx",
+                "reward": -0.6376793686385182,
+                "creation_time": 1775686673.7131126,
+                "auxillary_file_paths": [
+                    "results\\TestrunSwap\\FighterBehavior\\FighterBehavior-1025102.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 1025102,
+            "file_path": "results\\TestrunSwap\\FighterBehavior.onnx",
+            "reward": -0.6376793686385182,
+            "creation_time": 1775686673.7131126,
+            "auxillary_file_paths": [
+                "results\\TestrunSwap\\FighterBehavior\\FighterBehavior-1025102.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.10.0+cpu"
+    }
+}

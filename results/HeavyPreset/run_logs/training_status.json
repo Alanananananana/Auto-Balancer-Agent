@@ -1,0 +1,123 @@
+{
+    "FighterB": {
+        "checkpoints": [
+            {
+                "steps": 3499954,
+                "file_path": "results\\HeavyPreset\\FighterB\\FighterB-3499954.onnx",
+                "reward": 0.1772787885533439,
+                "creation_time": 1776639875.9465075,
+                "auxillary_file_paths": [
+                    "results\\HeavyPreset\\FighterB\\FighterB-3499954.pt"
+                ]
+            },
+            {
+                "steps": 3999988,
+                "file_path": "results\\HeavyPreset\\FighterB\\FighterB-3999988.onnx",
+                "reward": -0.02010483176193454,
+                "creation_time": 1776641715.5886075,
+                "auxillary_file_paths": [
+                    "results\\HeavyPreset\\FighterB\\FighterB-3999988.pt"
+                ]
+            },
+            {
+                "steps": 4499994,
+                "file_path": "results\\HeavyPreset\\FighterB\\FighterB-4499994.onnx",
+                "reward": -0.8532141523901373,
+                "creation_time": 1776643558.9428043,
+                "auxillary_file_paths": [
+                    "results\\HeavyPreset\\FighterB\\FighterB-4499994.pt"
+                ]
+            },
+            {
+                "steps": 4999952,
+                "file_path": "results\\HeavyPreset\\FighterB\\FighterB-4999952.onnx",
+                "reward": -0.3072441712021828,
+                "creation_time": 1776645395.1523972,
+                "auxillary_file_paths": [
+                    "results\\HeavyPreset\\FighterB\\FighterB-4999952.pt"
+                ]
+            },
+            {
+                "steps": 5000016,
+                "file_path": "results\\HeavyPreset\\FighterB\\FighterB-5000016.onnx",
+                "reward": -0.3072441712021828,
+                "creation_time": 1776645396.9524262,
+                "auxillary_file_paths": [
+                    "results\\HeavyPreset\\FighterB\\FighterB-5000016.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 5000016,
+            "file_path": "results\\HeavyPreset\\FighterB.onnx",
+            "reward": -0.3072441712021828,
+            "creation_time": 1776645396.9524262,
+            "auxillary_file_paths": [
+                "results\\HeavyPreset\\FighterB\\FighterB-5000016.pt"
+            ]
+        }
+    },
+    "FighterA": {
+        "checkpoints": [
+            {
+                "steps": 3499954,
+                "file_path": "results\\HeavyPreset\\FighterA\\FighterA-3499954.onnx",
+                "reward": -0.790679445040637,
+                "creation_time": 1776639876.9855342,
+                "auxillary_file_paths": [
+                    "results\\HeavyPreset\\FighterA\\FighterA-3499954.pt"
+                ]
+            },
+            {
+                "steps": 3999988,
+                "file_path": "results\\HeavyPreset\\FighterA\\FighterA-3999988.onnx",
+                "reward": -0.43955853865726996,
+                "creation_time": 1776641716.5779605,
+                "auxillary_file_paths": [
+                    "results\\HeavyPreset\\FighterA\\FighterA-3999988.pt"
+                ]
+            },
+            {
+                "steps": 4499994,
+                "file_path": "results\\HeavyPreset\\FighterA\\FighterA-4499994.onnx",
+                "reward": -0.3481911327689886,
+                "creation_time": 1776643559.9322875,
+                "auxillary_file_paths": [
+                    "results\\HeavyPreset\\FighterA\\FighterA-4499994.pt"
+                ]
+            },
+            {
+                "steps": 4999952,
+                "file_path": "results\\HeavyPreset\\FighterA\\FighterA-4999952.onnx",
+                "reward": -0.8663568136874925,
+                "creation_time": 1776645396.173251,
+                "auxillary_file_paths": [
+                    "results\\HeavyPreset\\FighterA\\FighterA-4999952.pt"
+                ]
+            },
+            {
+                "steps": 5000016,
+                "file_path": "results\\HeavyPreset\\FighterA\\FighterA-5000016.onnx",
+                "reward": -0.8663568136874925,
+                "creation_time": 1776645398.1414998,
+                "auxillary_file_paths": [
+                    "results\\HeavyPreset\\FighterA\\FighterA-5000016.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 5000016,
+            "file_path": "results\\HeavyPreset\\FighterA.onnx",
+            "reward": -0.8663568136874925,
+            "creation_time": 1776645398.1414998,
+            "auxillary_file_paths": [
+                "results\\HeavyPreset\\FighterA\\FighterA-5000016.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.11.0+cpu"
+    }
+}

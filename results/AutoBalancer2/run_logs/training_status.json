@@ -1,0 +1,38 @@
+{
+    "AutoBalancerAgent": {
+        "checkpoints": [
+            {
+                "steps": 4286,
+                "file_path": "results\\AutoBalancer2\\AutoBalancerAgent\\AutoBalancerAgent-4286.onnx",
+                "reward": -0.018725207031583237,
+                "creation_time": 1776448669.2205107,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancer2\\AutoBalancerAgent\\AutoBalancerAgent-4286.pt"
+                ]
+            },
+            {
+                "steps": 11101,
+                "file_path": "results\\AutoBalancer2\\AutoBalancerAgent\\AutoBalancerAgent-11101.onnx",
+                "reward": 0.6686535479524122,
+                "creation_time": 1776462631.6694858,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancer2\\AutoBalancerAgent\\AutoBalancerAgent-11101.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 11101,
+            "file_path": "results\\AutoBalancer2\\AutoBalancerAgent.onnx",
+            "reward": 0.6686535479524122,
+            "creation_time": 1776462631.6694858,
+            "auxillary_file_paths": [
+                "results\\AutoBalancer2\\AutoBalancerAgent\\AutoBalancerAgent-11101.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.11.0+cpu"
+    }
+}

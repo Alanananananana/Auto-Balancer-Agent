@@ -1,0 +1,29 @@
+{
+    "FighterBehavior": {
+        "checkpoints": [
+            {
+                "steps": 136732,
+                "file_path": "results\\HeavyTest2\\FighterBehavior\\FighterBehavior-136732.onnx",
+                "reward": -0.6097149327397346,
+                "creation_time": 1775683971.7572813,
+                "auxillary_file_paths": [
+                    "results\\HeavyTest2\\FighterBehavior\\FighterBehavior-136732.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 136732,
+            "file_path": "results\\HeavyTest2\\FighterBehavior.onnx",
+            "reward": -0.6097149327397346,
+            "creation_time": 1775683971.7572813,
+            "auxillary_file_paths": [
+                "results\\HeavyTest2\\FighterBehavior\\FighterBehavior-136732.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.10.0+cpu"
+    }
+}
