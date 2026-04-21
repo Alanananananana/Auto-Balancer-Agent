@@ -9,7 +9,7 @@ To train models for yourself, a list of required powershell programs is included
 
 STEP 1: Clone the repository into a folder of your choice
 
-Step 2: Install Python version 3.10.3
+STEP 2: Install Python version 3.10.3
 
 STEP 3: Right click the root folder and open in terminal.
 
