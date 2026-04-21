@@ -28,5 +28,11 @@ public class HumanInput : MonoBehaviour, IFighterInput
         JumpPressed = Input.GetKeyDown(jump);
         AttackPressed = Input.GetKeyDown(attack);
         BlockHeld = Input.GetKey(block);
+        
+        // TEMPORARY DEBUG
+        if (_move != 0f || JumpPressed || AttackPressed)
+        {
+            Debug.Log($"[HumanInput] _move={_move} jump={JumpPressed} attack={AttackPressed} left={left} right={right}");
+        }
     }
 }

@@ -176,8 +176,8 @@ public class FighterController : MonoBehaviour
 
     void Update()
     {
-        // Ensure input reference (inputSource may be assigned at runtime)
-        if (_input == null) _input = inputSource as IFighterInput;
+        // Always refresh input reference in case inputSource was changed at runtime
+        _input = inputSource as IFighterInput;
         if (_input == null) return;
 
         // Give priority to direct HumanInput sampling to avoid frame-order race with HumanInput.Update.

@@ -17,4 +17,8 @@ public class OptionsData
     public float invulnAfterHit = 0.2f;
     public float blockDamageReduction = 0.6f;
     public float knockbackResistance = 0.5f;
+
+    // Per-player AI toggles (persisted). True = AI controls the fighter.
+    public bool player1IsAI = true;
+    public bool player2IsAI = true;
 }

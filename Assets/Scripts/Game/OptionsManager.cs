@@ -64,6 +64,8 @@ public class OptionsManager : MonoBehaviour
             optionsData.invulnAfterHit = defaultStats.invulnAfterHit;
             optionsData.blockDamageReduction = defaultStats.blockDamageReduction;
             optionsData.knockbackResistance = defaultStats.knockbackResistance;
+
+            // Keep AI defaults true (do not override)
         }
 
         Save(); // persist defaults
@@ -112,6 +114,8 @@ public class OptionsManager : MonoBehaviour
             // Preserve attack fields added to FighterStats
             copy.attackSpeed = baseStats.attackSpeed;
             copy.attackDamageMultiplier = baseStats.attackDamageMultiplier;
+            copy.knockbackDealtMultiplier = baseStats.knockbackDealtMultiplier;
+            copy.maxHp = baseStats.maxHp;
         }
 
         if (!applyOverrides) return copy;

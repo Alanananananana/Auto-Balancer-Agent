@@ -370,19 +370,45 @@ public class GameManager : MonoBehaviour
         fc.stats = statsToUse;
         fc.weapon = cfg.weapon;
 
-        // IMPORTANT: apply stats-derived attack modifiers (damage/cooldown) now that stats & weapon are assigned
-        fc.ApplyStats();
-
-        // Plug input source
-        IFighterInput i; // to force compile
-        if (cfg.isAI)
+        // Determine whether to use AI according to PlayerConfig and OptionsManager toggles (Options override)
+        bool useAi = cfg != null && cfg.isAI;
+        if (OptionsManager.Instance != null)
         {
-            var agent = go.GetComponent<FighterAgent>() ?? go.AddComponent<FighterAgent>();
-            fc.inputSource = agent; // FighterAgent.Initialize also sets this, but do it explicitly
+            if (cfg == player1) useAi = OptionsManager.Instance.optionsData.player1IsAI;
+            else if (cfg == player2) useAi = OptionsManager.Instance.optionsData.player2IsAI;
+        }
+
+        // Plug input source: prefer AI when useAi==true, otherwise human input only.
+        // Clean up existing components on prefab to avoid duplicates.
+        var existingAgent = go.GetComponent<FighterAgent>();
+        var existingHuman = go.GetComponent<HumanInput>();
+
+        if (useAi)
+        {
+            // Remove any HumanInput that could conflict
+            if (existingHuman != null) Destroy(existingHuman);
+
+            // Ensure FighterAgent exists and is enabled
+            var agent = existingAgent ?? go.AddComponent<FighterAgent>();
+            agent.enabled = true;
+
+            // Assign agent as input source
+            fc.inputSource = agent;
         }
         else
         {
-            var hi = go.AddComponent<HumanInput>();
+            // Remove DecisionRequester first (if present) to avoid dependency errors
+            var decisionRequester = go.GetComponent<Unity.MLAgents.DecisionRequester>();
+            if (decisionRequester != null) DestroyImmediate(decisionRequester);
+
+            // Now remove FighterAgent
+            if (existingAgent != null) DestroyImmediate(existingAgent);
+
+            // Ensure a HumanInput exists
+            var hi = existingHuman;
+            if (hi == null) hi = go.AddComponent<HumanInput>();
+
+            // Always re-assign keys (even if component already existed)
             if (leftSide)
             {
                 // Player 1: A/D for left/right, W to jump, Space to attack, LeftShift to block
@@ -401,12 +427,13 @@ public class GameManager : MonoBehaviour
                 hi.attack = KeyCode.L;
                 hi.block = KeyCode.K;
             }
+
             fc.inputSource = hi;
-            Debug.Log($"Spawned '{go.name}': inputSource='{fc.inputSource?.GetType().Name ?? "null"}' isAI={cfg.isAI}", go);
+            Debug.Log($"Spawned '{go.name}': inputSource='{fc.inputSource?.GetType().Name ?? "null"}' isAI={useAi} left={hi.left} right={hi.right}", go);
         }
 
         // Damage reduction while blocking: intercept Health.TakeHit via wrapper (simple example)
-        var block = go.AddComponent<BlockState>();
+        var block = go.GetComponent<BlockState>() ?? go.AddComponent<BlockState>();
         hp.OnDamaged += _ => { /* UI hook point */ };
 
         // Store runtime instance + spawn pos
