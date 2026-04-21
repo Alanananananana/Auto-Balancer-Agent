@@ -12,14 +12,21 @@ STEP 3: Right click the root folder and open in terminal.
 STEP 4: Paste the following commands into powershell to create a virtual environment and install the necessary packages:
 
 py -m venv .venv
+
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
 .\.venv\Scripts\Activate.ps1
+
 
 pip install -r requirements.txt
 
+
 pip install --no-deps onnx==1.21.0
+
 pip install --no-deps onnx-ir==0.2.0
+
 pip install --no-deps onnxscript==0.6.2
+
 
 STEP 5: To train fighters, remove the models from the prefab fighters and change the Behaviour Type to default. Then uncheck the AutoBalancer object in SampleScene, then run this command
 
