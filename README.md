@@ -9,4 +9,22 @@ To train models for yourself, a list of required powershell programs is included
 STEP 1: Clone the repository into a folder of your choice
 Step 2: Install Python version 3.10.3
 STEP 3: Right click the root folder and open in terminal.
-STEP 4: Paste the following commands into powershell to create a virtual environment, and install the necessary packages
+STEP 4: Paste the following commands into powershell to create a virtual environment and install the necessary packages:
+
+py -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
+
+pip install --no-deps onnx==1.21.0
+pip install --no-deps onnx-ir==0.2.0
+pip install --no-deps onnxscript==0.6.2
+
+STEP 5: To train fighters, remove the models from the prefab fighters and change the Behaviour Type to default. Then uncheck the AutoBalancer object in SampleScene, then run this command
+
+mlagents-learn .\Assets\training\trainer_config.yaml --run-id=run_name
+
+To train the auto balancer, Attach the pretrained models to the fighter prefabs and make sure Behaviour Type is inference (Set up as standard)
+
+mlagents-learn .\Assets\training\auto_balance.yaml --run-id=AutoBalancerRun_name
