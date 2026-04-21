@@ -824,9 +824,9 @@ MonoBehaviour:
     VectorActionDescriptions: []
     VectorActionSpaceType: 1
     hasUpgradedBrainParametersWithActionSpec: 1
-  m_Model: {fileID: 0}
+  m_Model: {fileID: 5022602860645237092, guid: 823f8aaad40ab144d9e4339ecad4d627, type: 3}
   m_InferenceDevice: 0
-  m_BehaviorType: 0
+  m_BehaviorType: 2
   m_BehaviorName: AutoBalancerAgent
   TeamId: 0
   m_UseChildSensors: 1

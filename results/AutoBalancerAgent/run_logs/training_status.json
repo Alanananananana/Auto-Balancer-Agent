@@ -2,15 +2,6 @@
     "AutoBalancerAgent": {
         "checkpoints": [
             {
-                "steps": 37610,
-                "file_path": "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-37610.onnx",
-                "reward": 14.221345051740988,
-                "creation_time": 1776750615.6380517,
-                "auxillary_file_paths": [
-                    "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-37610.pt"
-                ]
-            },
-            {
                 "steps": 45683,
                 "file_path": "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-45683.onnx",
                 "reward": 10.797040911849786,
@@ -45,15 +36,24 @@
                 "auxillary_file_paths": [
                     "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-46176.pt"
                 ]
+            },
+            {
+                "steps": 46408,
+                "file_path": "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-46408.onnx",
+                "reward": 0.22345489719561462,
+                "creation_time": 1776791939.052049,
+                "auxillary_file_paths": [
+                    "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-46408.pt"
+                ]
             }
         ],
         "final_checkpoint": {
-            "steps": 46176,
+            "steps": 46408,
             "file_path": "results\\AutoBalancerAgent\\AutoBalancerAgent.onnx",
-            "reward": -0.9634863608193182,
-            "creation_time": 1776780481.5741751,
+            "reward": 0.22345489719561462,
+            "creation_time": 1776791939.052049,
             "auxillary_file_paths": [
-                "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-46176.pt"
+                "results\\AutoBalancerAgent\\AutoBalancerAgent\\AutoBalancerAgent-46408.pt"
             ]
         }
     },
