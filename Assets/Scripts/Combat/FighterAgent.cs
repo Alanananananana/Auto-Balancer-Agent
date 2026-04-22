@@ -5,28 +5,32 @@ using Unity.MLAgents;
 using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
 
-// ML-Agent wrapper that implements IFighterInput so FighterController can read commands.
-// Contains observation collection, action handling, reward shaping and simple telemetry.
+/// <summary>
+/// ML-Agents fighter agent that implements IFighterInput for FighterController.
+/// Observes relative position, velocity, HP, and grounded state.
+/// Outputs continuous move axis and discrete actions for attack/jump/block.
+/// Includes reward shaping for distance closing, center-seeking, and wall avoidance.
+/// </summary>
 public class FighterAgent : Agent, IFighterInput
 {
     [Header("Agent")]
-    public Transform target;                  // Opponent - auto-found if null
-    public float maxObsDistance = 10f;        // Used to normalize position obs
+    public Transform target;                  // Opponent (auto-found if null)
+    public float maxObsDistance = 10f;        // Used to normalize position observations
 
     [Header("Training Tuning")]
     [Tooltip("Small negative time penalty each episode start to discourage stalling.")]
     public float timePenalty = -0.001f;
-    [Tooltip("Scale applied to reward for closing horizontal distance to the target.")]
+    [Tooltip("Scale applied to reward for closing horizontal distance to target.")]
     public float distanceRewardScale = 0.05f;
-    [Tooltip("Enable runtime logging to Academy stats (visible in TensorBoard).")]
+    [Tooltip("Enable runtime logging to Academy stats (TensorBoard).")]
     public bool logStats = true;
 
     [Header("Movement Smoothing")]
-    [Tooltip("Maximum change in move axis per second. Set to 0 for instant (dangerous).")]
+    [Tooltip("Maximum change in move axis per second. Set to 0 for instant.")]
     public float moveChangePerSecond = 8f;
 
     [Header("Wall / Corner Penalty (optional)")]
-    [Tooltip("Small periodic penalty when pinned to a wall and not escaping.")]
+    [Tooltip("Small periodic penalty when pinned to wall and not escaping.")]
     public float wallPenalty = 2.0f;
     [Tooltip("Seconds of continuous wall contact before penalties begin.")]
     public float wallGraceSeconds = 0.0f;
@@ -34,14 +38,14 @@ public class FighterAgent : Agent, IFighterInput
     public float minEscapeSpeed = 0.5f;
     [Tooltip("How often (seconds) to apply wall penalty while pinned.")]
     public float wallPenaltyInterval = 0.0f;
-    [Tooltip("Optional arena center transform used to compute escape direction. If null, world origin is used.")]
+    [Tooltip("Optional arena center transform for escape direction. If null, uses world origin.")]
     public Transform arenaCenter;
 
     [Header("Center-Seeking Reward")]
-    [Tooltip("Small shaping reward scale for moving toward arena center (encourages staying central vs hugging walls).")]
+    [Tooltip("Small shaping reward for moving toward arena center (discourages wall-hugging).")]
     public float centerRewardScale = 0.05f;
 
-    // IFighterInput state read by FighterController
+    // IFighterInput state
     private float _moveAxis;
     public float MoveAxis => _moveAxis;
     private float _targetMoveAxis;
@@ -61,43 +65,45 @@ public class FighterAgent : Agent, IFighterInput
     private float _lastHp;
     private float _targetLastHp;
     private float _lastHorizontalDist;
-
-    // Center shaping bookkeeping
     private float _lastCenterDist;
 
     // Telemetry
     private Unity.MLAgents.StatsRecorder _statsRecorder;
-    private int _stepCount; // decision steps (existing metric)
-
-    // NEW: environment steps and episode timer (env steps = FixedUpdate count)
+    private int _stepCount;
     private int _envStepCount;
     private float _episodeStartTime;
 
-    // Wall / corner penalty timers
+    // Wall penalty timers
     private float _wallTouchTimer;
     private float _lastWallPenaltyTime = -999f;
 
-    // Reset one-frame actions after FighterController reads them
+    /// <summary>
+    /// Reset one-frame actions after FighterController reads them.
+    /// </summary>
     void LateUpdate()
     {
         _jumpPressed = false;
         _attackPressed = false;
     }
 
-    // Smooth movement in physics timestep
+    /// <summary>
+    /// Smooth movement axis and handle wall penalty logic.
+    /// Counts environment (physics) steps for telemetry.
+    /// </summary>
     void FixedUpdate()
     {
-        // Count environment (physics) steps for this episode
+        // Count environment steps
         if (_episodeStartTime > 0f)
             _envStepCount++;
 
+        // Smooth move axis toward target
         if (!Mathf.Approximately(_moveAxis, _targetMoveAxis))
         {
             float maxDelta = moveChangePerSecond * Time.fixedDeltaTime;
             _moveAxis = Mathf.MoveTowards(_moveAxis, _targetMoveAxis, maxDelta);
         }
 
-        // Optional wall penalty handling (uses FighterController.IsTouchingWall)
+        // Wall penalty handling
         if (_fighter != null)
         {
             bool touching = _fighter.IsTouchingWall;
@@ -124,6 +130,9 @@ public class FighterAgent : Agent, IFighterInput
         }
     }
 
+    /// <summary>
+    /// Initialize agent: cache components, subscribe to health events, find target if needed.
+    /// </summary>
     public override void Initialize()
     {
         _fighter = GetComponent<FighterController>();
@@ -141,7 +150,9 @@ public class FighterAgent : Agent, IFighterInput
         if (logStats && Academy.Instance != null) _statsRecorder = Academy.Instance.StatsRecorder;
     }
 
-    // Try to find opponent if not assigned (useful in setups with many envs)
+    /// <summary>
+    /// Try to find opponent if not assigned (useful in multi-environment setups).
+    /// </summary>
     private void FindTargetIfNeeded()
     {
         if (target != null) return;
@@ -158,6 +169,9 @@ public class FighterAgent : Agent, IFighterInput
         }
     }
 
+    /// <summary>
+    /// Reset episode state: heal, apply time penalty, reset baselines and counters.
+    /// </summary>
     public override void OnEpisodeBegin()
     {
         FindTargetIfNeeded();
@@ -166,18 +180,18 @@ public class FighterAgent : Agent, IFighterInput
         if (_targetHealth != null) _targetLastHp = _targetHealth.currentHp;
         _lastHp = _health != null ? _health.currentHp : 0f;
 
-        // Time penalty to reduce stalling (small)
+        // Time penalty to reduce stalling
         AddReward(timePenalty);
 
-        // baseline distance for shaping
+        // Baseline distance for shaping
         if (target != null) _lastHorizontalDist = Mathf.Abs((target.position - transform.position).x);
         else _lastHorizontalDist = 0f;
 
-        // baseline center distance for center shaping
+        // Baseline center distance
         Vector3 center = (arenaCenter != null) ? arenaCenter.position : Vector3.zero;
         _lastCenterDist = Mathf.Abs(transform.position.x - center.x);
 
-        // reset telemetry counters / timers
+        // Reset counters
         _stepCount = 0;
         _envStepCount = 0;
         _episodeStartTime = Time.time;
@@ -187,6 +201,10 @@ public class FighterAgent : Agent, IFighterInput
         _lastWallPenaltyTime = -999f;
     }
 
+    /// <summary>
+    /// Collect observations: relative position, velocity, HP, grounded state, blocking state.
+    /// All values normalized to [-1,1] or [0,1] ranges.
+    /// </summary>
     public override void CollectObservations(VectorSensor sensor)
     {
         FindTargetIfNeeded();
@@ -197,7 +215,7 @@ public class FighterAgent : Agent, IFighterInput
         sensor.AddObservation(Mathf.Clamp(SafeDiv(toTarget.x, maxObsDistance), -1f, 1f));
         sensor.AddObservation(Mathf.Clamp(SafeDiv(toTarget.y, maxObsDistance), -1f, 1f));
 
-        // Velocity approx normalized
+        // Velocity normalized
         var rb = GetComponent<Rigidbody2D>();
         float moveSpeed = (_fighter != null && _fighter.stats != null) ? _fighter.stats.moveSpeed : 1f;
         float jumpForce = (_fighter != null && _fighter.stats != null) ? _fighter.stats.jumpForce : 1f;
@@ -208,10 +226,10 @@ public class FighterAgent : Agent, IFighterInput
         sensor.AddObservation(_fighter != null ? (_fighter.Blocking ? 1f : 0f) : 0f);
         sensor.AddObservation(_fighter != null ? (_fighter.stats != null && _fighter.stats.canJump ? 1f : 0f) : 0f);
 
-        // NEW: grounded flag (helps detect platform contact)
+        // Grounded flag
         sensor.AddObservation(_fighter != null ? (_fighter.IsGrounded ? 1f : 0f) : 0f);
 
-        // NEW: normalized vertical position (helps agent know proximity to fall)
+        // Normalized vertical position
         sensor.AddObservation(Mathf.Clamp(SafeDiv(transform.position.y, maxObsDistance), -1f, 1f));
 
         // HP normalized
@@ -219,10 +237,13 @@ public class FighterAgent : Agent, IFighterInput
         sensor.AddObservation(_targetHealth != null ? Mathf.Clamp(SafeDiv(_targetHealth.currentHp, _targetHealth.maxHp), 0f, 1f) : 0f);
     }
 
-    // Action spec: 1 continuous (move), 3 discrete branches (attack/jump/block) each size 2.
+    /// <summary>
+    /// Process network actions: continuous move axis and discrete attack/jump/block.
+    /// Applies distance shaping and center-seeking shaping rewards.
+    /// </summary>
     public override void OnActionReceived(ActionBuffers actions)
     {
-        // store continuous move target, smooth in FixedUpdate
+        // Store continuous move target (smoothed in FixedUpdate)
         _targetMoveAxis = Mathf.Clamp(actions.ContinuousActions[0], -1f, 1f);
 
         var disc = actions.DiscreteActions;
@@ -230,7 +251,7 @@ public class FighterAgent : Agent, IFighterInput
         _jumpPressed = disc[1] == 1;
         _blockHeld = disc[2] == 1;
 
-        // decision step counter (this is what you already log as episode_length)
+        // Decision step counter
         _stepCount++;
 
         // Distance shaping: reward closing horizontal distance
@@ -245,20 +266,22 @@ public class FighterAgent : Agent, IFighterInput
             _lastHorizontalDist = currentDist;
         }
 
-        // Center shaping: reward getting closer to arena center (discourages wall-hugging).
+        // Center shaping: reward moving toward arena center
         {
             Vector3 center = (arenaCenter != null) ? arenaCenter.position : Vector3.zero;
             float currentCenterDist = Mathf.Abs(transform.position.x - center.x);
             float centerDelta = _lastCenterDist - currentCenterDist;
             if (!float.IsNaN(centerDelta) && Mathf.Abs(centerDelta) > Mathf.Epsilon)
             {
-                // small shaping reward, clamped
                 AddReward(Mathf.Clamp(centerRewardScale * centerDelta, -0.02f, 0.02f));
             }
             _lastCenterDist = currentCenterDist;
         }
     }
 
+    /// <summary>
+    /// Heuristic for manual testing: WASD movement, Space = attack, W = jump, LeftShift = block.
+    /// </summary>
     public override void Heuristic(in ActionBuffers actionsOut)
     {
         var cont = actionsOut.ContinuousActions;
@@ -273,7 +296,9 @@ public class FighterAgent : Agent, IFighterInput
         disc[2] = Input.GetKey(KeyCode.LeftShift) ? 1 : 0; // block
     }
 
-    // Reward hooks: called when opponent or self damaged
+    /// <summary>
+    /// Reward hook: opponent took damage (positive reward).
+    /// </summary>
     private void OnTargetDamaged(float remainingHp)
     {
         float dmg = _targetLastHp - remainingHp;
@@ -281,6 +306,9 @@ public class FighterAgent : Agent, IFighterInput
         _targetLastHp = remainingHp;
     }
 
+    /// <summary>
+    /// Reward hook: self took damage (negative reward).
+    /// </summary>
     private void OnSelfDamaged(float remainingHp)
     {
         float dmg = _lastHp - remainingHp;
@@ -288,25 +316,26 @@ public class FighterAgent : Agent, IFighterInput
         _lastHp = remainingHp;
     }
 
-    // Terminal checks done in Update so they trigger EndEpisode quickly
+    /// <summary>
+    /// Terminal checks: end episode on win/loss and log telemetry.
+    /// </summary>
     void Update()
     {
+        // Win condition
         if (_targetHealth != null && _targetHealth.currentHp <= 0f)
         {
             AddReward(1.0f);
             if (logStats && _statsRecorder != null)
             {
-                // existing metric: decision steps (what you called episode_length)
                 _statsRecorder.Add("episode_length", _stepCount);
                 _statsRecorder.Add("episode_reward", GetCumulativeReward());
                 _statsRecorder.Add("wins", 1);
-
-                // NEW metrics: environment steps and elapsed seconds
                 _statsRecorder.Add("episode_env_steps", _envStepCount);
                 _statsRecorder.Add("episode_seconds", Time.time - _episodeStartTime);
             }
             EndEpisode();
         }
+        // Loss condition
         if (_health != null && _health.currentHp <= 0f)
         {
             AddReward(-1.0f);
@@ -315,8 +344,6 @@ public class FighterAgent : Agent, IFighterInput
                 _statsRecorder.Add("episode_length", _stepCount);
                 _statsRecorder.Add("episode_reward", GetCumulativeReward());
                 _statsRecorder.Add("losses", 1);
-
-                // NEW metrics: environment steps and elapsed seconds
                 _statsRecorder.Add("episode_env_steps", _envStepCount);
                 _statsRecorder.Add("episode_seconds", Time.time - _episodeStartTime);
             }
@@ -324,13 +351,18 @@ public class FighterAgent : Agent, IFighterInput
         }
     }
 
+    /// <summary>
+    /// Cleanup: unsubscribe from health events on destroy.
+    /// </summary>
     private void OnDestroy()
     {
         if (_targetHealth != null) _targetHealth.OnDamaged -= OnTargetDamaged;
         if (_health != null) _health.OnDamaged -= OnSelfDamaged;
     }
 
-    // Helper to avoid NaN/Infinity observations when denominators are zero or values invalid.
+    /// <summary>
+    /// Helper to avoid NaN/Infinity observations when denominators are zero or values invalid.
+    /// </summary>
     private float SafeDiv(float numerator, float denominator)
     {
         if (float.IsNaN(numerator) || float.IsNaN(denominator)) return 0f;

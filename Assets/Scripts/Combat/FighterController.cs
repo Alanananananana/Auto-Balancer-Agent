@@ -1,25 +1,23 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// Controls a single fighter's movement, attacks, and basic state (stun, block, jump).
 /// Designed to be fed input by any IFighterInput provider (HumanInput, FighterAgent, AIInput).
-/// This file is documented and mildly refactored for readability — behavior is unchanged except
-/// for an optional velocity-based jump mode to make jump height consistent across timeScale changes.
+/// Handles velocity-based movement, attack state machine, hitbox management, and ground detection.
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
 public class FighterController : MonoBehaviour
 {
     [Header("Config")]
-    public FighterStats stats;              // ScriptableObject-like container for movement/attack numbers
-    public WeaponData weapon;               // Weapon/attack timing and damage
-    public Transform visual;                // Sprite root used to flip facing
+    public FighterStats stats;              // ScriptableObject container for movement/attack stats
+    public WeaponData weapon;               // Weapon/attack timing and damage configuration
+    public Transform visual;                // Sprite root used to flip facing direction
     public bool Blocking => _blocking;      // Public read-only block state
 
     [Header("Hitbox")]
     public Hitbox hitbox;                   // Child object used for attack collisions
-    public Transform weaponVisual;          // Optional sword sprite to show during attack
+    public Transform weaponVisual;          // Optional sword sprite shown during attack
 
     [Header("Input Provider")]
     public MonoBehaviour inputSource;       // Must implement IFighterInput at runtime
@@ -30,11 +28,11 @@ public class FighterController : MonoBehaviour
 
     [Header("Demo")]
     [Tooltip("Multiplier applied to horizontal moveSpeed for demo (set < 1 to slow down).")]
-    public float demoSpeedMultiplier = 1f;  // Use <1 for demonstration slow-down; keep 1.0 for training
+    public float demoSpeedMultiplier = 1f;  // Use <1 for demonstration slow-down
 
     [Header("Movement Mode")]
     [Tooltip("When true, controller sets velocity directly (smoothed). When false, uses AddForce (legacy).")]
-    public bool useVelocityControl = true;  // Toggle to revert to force-based movement if desired
+    public bool useVelocityControl = true;
 
     [Header("Attack Movement")]
     [Tooltip("Fraction of top move speed allowed while attacking (0..1)")]
@@ -45,7 +43,7 @@ public class FighterController : MonoBehaviour
     [Header("Jump (stability)")]
     [Tooltip("When true, set vertical velocity directly for jumps (consistent across timescale/fixedDeltaTime).")]
     public bool useVelocityJump = true;
-    [Tooltip("Target vertical velocity applied when jumping. If 0 or negative, falls back to stats.jumpForce as impulse amount.")]
+    [Tooltip("Target vertical velocity applied when jumping. If 0 or negative, falls back to stats.jumpForce as impulse.")]
     public float jumpVelocity = 0f;
     [Tooltip("Enable debug logging for jump events (prints velocities, gravity, timescale).")]
     public bool logJumpDebug = false;
@@ -64,31 +62,29 @@ public class FighterController : MonoBehaviour
     // Effective cooldown computed from weapon.cooldown and stats.attackSpeed
     private float _effectiveCooldown = 0.0f;
 
-    // Jump permission is tracked per-instance (do not mutate shared ScriptableObject)
+    // Jump permission tracked per-instance
     private bool _canJump;
 
-    // Track ground contacts (handles multiple colliders touching)
+    // Track ground contacts (handles multiple colliders)
     private readonly HashSet<Collider2D> _groundColliders = new HashSet<Collider2D>();
 
     // Track wall contacts (used by AI penalty logic in FighterAgent)
     private readonly HashSet<Collider2D> _wallColliders = new HashSet<Collider2D>();
     public bool IsTouchingWall => _wallColliders.Count > 0;
 
-    // New: expose grounded state so Agents can observe it
+    // Expose grounded state so Agents can observe it
     public bool IsGrounded => _groundColliders.Count > 0;
 
-    // Facing cache so we only update hitbox offsets on facing changes
+    // Facing cache to update hitbox only on changes
     private float _lastFacingSign = 1f;
 
-    // Cache visual base local scale so flipping preserves sprite scale
+    // Cache visual base local scale for flipping
     private Vector3 _visualBaseLocalScale = Vector3.one;
 
-    // Cache weapon visual base transforms so we can mirror/rotate correctly
+    // Cache weapon visual base transforms for mirroring
     private Vector3 _weaponVisualBaseLocalPos;
     private Vector3 _weaponVisualBaseLocalScale;
     private Vector3 _weaponVisualBaseLocalEuler;
-
-    // ---- Unity messages ----
 
     /// <summary>
     /// One-time initialization. Cache components, configure hitbox from WeaponData,
@@ -97,16 +93,16 @@ public class FighterController : MonoBehaviour
     void Awake()
     {
         _rb = GetComponent<Rigidbody2D>();
-        // Improve visual smoothness when we set velocity directly in FixedUpdate.
+        // Improve visual smoothness when velocity is set directly
         _rb.interpolation = RigidbodyInterpolation2D.Interpolate;
 
         _health = GetComponent<Health>();
         _input = inputSource as IFighterInput;
 
-        // initialize instance jump flag from stats default
+        // Initialize instance jump flag from stats
         _canJump = stats != null && stats.canJump;
 
-        // Configure hitbox properties from the assigned WeaponData (if present)
+        // Configure hitbox properties from WeaponData
         if (hitbox != null && weapon != null)
         {
             var box = hitbox.GetComponent<BoxCollider2D>();
@@ -115,20 +111,19 @@ public class FighterController : MonoBehaviour
                 box.size = weapon.boxSize;
                 box.offset = weapon.localOffset;
             }
-            // Set base values; ApplyStats will override damage/cooldown if stats provided
             hitbox.damage = weapon.damage;
             hitbox.knockback = weapon.knockback;
             hitbox.owner = transform;
         }
 
-        // Initialize visual base scale (preserve prefab scaling)
+        // Initialize visual base scale
         if (visual != null)
         {
             _visualBaseLocalScale = visual.localScale;
             _lastFacingSign = Mathf.Sign(_visualBaseLocalScale.x != 0f ? _visualBaseLocalScale.x : 1f);
         }
 
-        // Cache weapon visual base transforms (for mirroring/rotation)
+        // Cache weapon visual base transforms
         if (weaponVisual != null)
         {
             _weaponVisualBaseLocalPos = weaponVisual.localPosition;
@@ -140,31 +135,36 @@ public class FighterController : MonoBehaviour
         // Ensure initial hitbox/weapon visuals are oriented correctly
         UpdateHitboxFacing();
 
-        // Register to health events for stun/death handling using named handlers
+        // Register health event handlers
         if (_health != null)
         {
             _health.OnDamaged += OnDamaged;
             _health.OnDeath += OnHealthDeath;
         }
 
-        // Initialize derived values if stats/weapon are already assigned
+        // Initialize derived values
         ApplyStats();
     }
 
-    // Named handler previously wired as anonymous lambda
+    /// <summary>
+    /// Handle damage event: apply stun.
+    /// </summary>
     private void OnDamaged(float remainingHp)
     {
         StartCoroutine(ApplyStun(stats != null ? stats.stunDuration : 0.25f));
     }
 
-    // Named handler previously wired as anonymous lambda
+    /// <summary>
+    /// Handle death event: disable controller.
+    /// </summary>
     private void OnHealthDeath()
     {
-        // Disables the controller when Health triggers death
         enabled = false;
     }
 
-    // Ensure we unsubscribe so destroyed instances don't leave dangling delegates
+    /// <summary>
+    /// Unsubscribe from health events on destroy to prevent dangling delegates.
+    /// </summary>
     private void OnDestroy()
     {
         if (_health != null)
@@ -174,28 +174,29 @@ public class FighterController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Handle input sampling, visual flipping, jump, and attack requests.
+    /// Reads directly from Input for HumanInput to avoid frame-order race conditions.
+    /// </summary>
     void Update()
     {
-        // Always refresh input reference in case inputSource was changed at runtime
+        // Refresh input reference
         _input = inputSource as IFighterInput;
         if (_input == null) return;
 
-        // Give priority to direct HumanInput sampling to avoid frame-order race with HumanInput.Update.
         var humanSource = inputSource as HumanInput;
 
-        // Compute blocking flag (blocking reduces damage, handled elsewhere).
-        // Prefer reading the actual key for human input to avoid race with execution order.
+        // Compute blocking flag (must be grounded, not attacking/stunned)
         if (humanSource != null)
             _blocking = Input.GetKey(humanSource.block) && !_attacking && !_stunned && IsGrounded;
         else
             _blocking = _input.BlockHeld && !_attacking && !_stunned && IsGrounded;
 
-        // Flip the visual to face movement direction (if any)
+        // Flip visual to face movement direction
         float move = _input.MoveAxis;
         if (Mathf.Abs(move) > 0.01f && visual != null)
         {
             float sign = Mathf.Sign(move);
-            // Preserve the original visual scale in Y/Z and preserve magnitude in X while flipping sign
             visual.localScale = new Vector3(Mathf.Abs(_visualBaseLocalScale.x) * sign, _visualBaseLocalScale.y, _visualBaseLocalScale.z);
 
             // Update hitbox/weapon facing only when sign changes
@@ -203,7 +204,7 @@ public class FighterController : MonoBehaviour
                 UpdateHitboxFacing();
         }
 
-        // Handle jump input: prefer direct human key sampling to avoid missing GetKeyDown when spamming.
+        // Handle jump input (prefer direct key sampling for humans)
         bool jumpRequested = false;
         if (humanSource != null)
         {
@@ -219,7 +220,7 @@ public class FighterController : MonoBehaviour
             PerformJump();
         }
 
-        // Handle attack input: prefer direct human key sampling to avoid frame-order races.
+        // Handle attack input (prefer direct key sampling for humans)
         bool attackRequested = false;
         if (humanSource != null)
         {
@@ -236,28 +237,29 @@ public class FighterController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Apply movement physics: smooth velocity control or legacy force-based movement.
+    /// Respects attack movement restrictions and demo speed multiplier.
+    /// </summary>
     void FixedUpdate()
     {
         if (_stunned) return;
 
         float inputAxis = _input?.MoveAxis ?? 0f;
 
-        // Determine allowed speed while attacking (reduced) or normal otherwise
+        // Determine allowed speed (reduced while attacking)
         float speedMultiplier = _attacking ? Mathf.Clamp01(attackMoveSpeedMultiplier) : 1f;
-
-        // Apply demo multiplier here to slow horizontal movement for demos.
         float maxSpeed = stats.moveSpeed * speedMultiplier * demoSpeedMultiplier;
 
-        // Desired velocity this frame
         float desired = inputAxis * maxSpeed;
         float currentX = _rb.linearVelocity.x;
 
         bool tryingToMove = Mathf.Abs(desired) > 0.01f;
 
-        // Use acceleration when actively moving, deceleration when stopping
+        // Use acceleration when moving, deceleration when stopping
         float accel = tryingToMove ? stats.acceleration : stats.deceleration;
 
-        // When attacking and trying to move, reduce acceleration so player can still steer but not gain full momentum
+        // Reduce acceleration while attacking and moving
         if (_attacking && tryingToMove)
         {
             accel *= Mathf.Clamp01(attackAccelerationMultiplier);
@@ -265,11 +267,11 @@ public class FighterController : MonoBehaviour
 
         if (useVelocityControl)
         {
-            // Treat accel as the max change in velocity per second (units/s^2 approximated).
+            // Velocity-based movement (smooth, timestep-independent)
             float maxDelta = accel * Time.fixedDeltaTime;
             float newX = Mathf.MoveTowards(currentX, desired, maxDelta);
 
-            // Snap to desired when very close to avoid tiny oscillations
+            // Snap to desired when very close
             if (Mathf.Abs(newX - desired) < 0.01f)
             {
                 newX = desired;
@@ -277,7 +279,7 @@ public class FighterController : MonoBehaviour
 
             _rb.linearVelocity = new Vector2(newX, _rb.linearVelocity.y);
 
-            // Enforce hard cap when attacking (prevent external forces exceeding allowed attack max)
+            // Enforce hard cap while attacking
             if (_attacking)
             {
                 float clampedX = Mathf.Clamp(_rb.linearVelocity.x, -maxSpeed, maxSpeed);
@@ -287,7 +289,7 @@ public class FighterController : MonoBehaviour
         }
         else
         {
-            // Legacy force-based behaviour (kept for compatibility)
+            // Legacy force-based movement
             float diff = desired - currentX;
             float force = Mathf.Clamp(diff * accel, -accel, accel);
             _rb.AddForce(new Vector2(force, 0f), ForceMode2D.Force);
@@ -301,16 +303,14 @@ public class FighterController : MonoBehaviour
         }
     }
 
-    // ---- Attack handling ----
-
     /// <summary>
-    /// Attempts to begin an attack if cooldown/recovery/stun allow it.
+    /// Attempt to begin an attack if cooldown/recovery/stun allow it.
     /// </summary>
     void TryAttack()
     {
         if (_stunned || _recovering) return;
 
-        // Use effective cooldown derived from stats.attackSpeed (fallback to weapon.cooldown if ApplyStats not called)
+        // Use effective cooldown from stats.attackSpeed
         if (Time.time - _lastAttackTime < _effectiveCooldown) return;
         if (_attacking) return;
         StartCoroutine(AttackRoutine());
@@ -319,7 +319,7 @@ public class FighterController : MonoBehaviour
     /// <summary>
     /// Attack lifecycle coroutine: startup -> active (enable hitbox) -> recovery.
     /// </summary>
-    IEnumerator AttackRoutine()
+    System.Collections.IEnumerator AttackRoutine()
     {
         _attacking = true;
         _lastAttackTime = Time.time;
@@ -327,7 +327,7 @@ public class FighterController : MonoBehaviour
         // Startup (windup)
         yield return new WaitForSeconds(weapon.startup);
 
-        // Active frames: enable hitbox and optional visual
+        // Active frames: enable hitbox and visual
         if (hitbox) hitbox.gameObject.SetActive(true);
         if (weaponVisual) weaponVisual.gameObject.SetActive(true);
 
@@ -346,50 +346,48 @@ public class FighterController : MonoBehaviour
 
     /// <summary>
     /// Apply per-instance derived values from stats and weapon.
-    /// Call this after assigning stats and weapon on a spawned fighter.
+    /// Call after assigning stats/weapon on a spawned fighter.
+    /// Computes effective cooldown, updates hitbox damage, and sets max HP.
     /// </summary>
     public void ApplyStats()
     {
         if (weapon == null) return;
 
-        // Compute effective cooldown from configured weapon.cooldown and stats.attackSpeed
+        // Compute effective cooldown from weapon.cooldown and stats.attackSpeed
         if (stats != null && stats.attackSpeed > 0f)
             _effectiveCooldown = weapon.cooldown / stats.attackSpeed;
         else
             _effectiveCooldown = weapon.cooldown;
 
-        // Update hitbox damage to respect attackDamageMultiplier (do not mutate shared WeaponData)
+        // Update hitbox damage with attackDamageMultiplier
         if (hitbox != null)
         {
             float dmgMult = stats != null ? stats.attackDamageMultiplier : 1f;
             hitbox.damage = weapon.damage * dmgMult;
-
-            // Keep knockback set from weapon; victim knockback resistance still applies in Hitbox logic
             hitbox.knockback = weapon.knockback;
         }
 
-        // Update jump permission from stats (ensure runtime reflects current stats)
+        // Update jump permission from stats
         _canJump = stats != null ? stats.canJump : true;
 
-        // NEW: apply maxHp from stats to this instance's Health component and heal to full
+        // Apply maxHp from stats to Health component
         if (_health != null && stats != null)
         {
-            // Ensure asset stats are within allowed ranges before applying
             stats.Normalize();
-
             _health.maxHp = stats.maxHp;
             _health.HealFull();
         }
     }
 
     /// <summary>
-    /// Performs the jump impulse/velocity set used by the controller.
-    /// Separated to avoid duplicating the logic above.
+    /// Perform jump impulse or velocity set based on configuration.
+    /// Supports both velocity-based (consistent) and force-based (legacy) jump modes.
     /// </summary>
     private void PerformJump()
     {
         if (useVelocityJump)
         {
+            // Velocity-based jump (consistent across timescales)
             float v = (jumpVelocity > 0f) ? jumpVelocity : (stats != null ? stats.jumpForce : 8f);
             if (logJumpDebug)
             {
@@ -399,6 +397,7 @@ public class FighterController : MonoBehaviour
         }
         else
         {
+            // Force-based jump (legacy)
             float jf = stats != null ? stats.jumpForce : 8f;
             if (logJumpDebug)
             {
@@ -409,11 +408,15 @@ public class FighterController : MonoBehaviour
         _canJump = false;
     }
 
-    IEnumerator ApplyStun(float seconds)
+    /// <summary>
+    /// Apply stun for specified duration. Blocking reduces stun duration.
+    /// Triggers temporary invulnerability via Health component.
+    /// </summary>
+    System.Collections.IEnumerator ApplyStun(float seconds)
     {
         if (_blocking)
         {
-            seconds *= 0.4f; // milder stun while blocking
+            seconds *= 0.4f; // Milder stun while blocking
         }
 
         _stunned = true;
@@ -425,11 +428,9 @@ public class FighterController : MonoBehaviour
         _stunned = false;
     }
 
-    // ---- Hitbox / visual facing helper ----
-
     /// <summary>
-    /// Updates hitbox offset and weapon visual to match current facing direction.
-    /// Call when visual scale flips.
+    /// Update hitbox offset and weapon visual to match current facing direction.
+    /// Called when visual scale flips.
     /// </summary>
     private void UpdateHitboxFacing()
     {
@@ -438,22 +439,21 @@ public class FighterController : MonoBehaviour
         var box = hitbox.GetComponent<BoxCollider2D>();
         if (box != null)
         {
-            var off = weapon.localOffset; // copy
+            var off = weapon.localOffset;
             off.x = Mathf.Abs(off.x) * Mathf.Sign(visual.localScale.x);
             box.offset = off;
 
             if (weaponVisual != null)
             {
-                // mirror position across X when facing flips
+                // Mirror position across X when facing flips
                 weaponVisual.localPosition = new Vector3(off.x, off.y, weaponVisual.localPosition.z);
 
-                // Mirror by flipping X scale instead of rotating the sprite.
-                // Preserve original base scale's Y/Z and magnitude of X, flip sign to mirror.
+                // Mirror by flipping X scale
                 var vs = _weaponVisualBaseLocalScale;
                 vs.x = Mathf.Abs(vs.x) * Mathf.Sign(visual.localScale.x);
                 weaponVisual.localScale = vs;
 
-                // NOTE: keep the weapon's base Euler rotation unchanged to avoid Z-rotation jumps.
+                // Keep base Euler rotation unchanged
                 weaponVisual.localEulerAngles = _weaponVisualBaseLocalEuler;
             }
         }
@@ -461,16 +461,12 @@ public class FighterController : MonoBehaviour
         _lastFacingSign = Mathf.Sign(visual.localScale.x);
     }
 
-    // ---- Ground / wall collision detection ----
-
+    /// <summary>
+    /// Detect ground contact and enable jumping when touching ground with valid normal.
+    /// </summary>
     void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.collider.isTrigger) return;
-
-        //if (collision.collider.CompareTag("wall"))
-        //{
-        //    _wallColliders.Add(collision.collider);
-        //}
 
         if ((groundMask.value & (1 << collision.collider.gameObject.layer)) == 0) return;
 
@@ -485,15 +481,12 @@ public class FighterController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Track ongoing ground contact and maintain jump permission.
+    /// </summary>
     void OnCollisionStay2D(Collision2D collision)
     {
         if (collision.collider.isTrigger) return;
-
-        //if (collision.collider.CompareTag("wall"))
-        //{
-        //    if (!_wallColliders.Contains(collision.collider))
-        //        _wallColliders.Add(collision.collider);
-        //}
 
         if ((groundMask.value & (1 << collision.collider.gameObject.layer)) == 0) return;
 
@@ -514,14 +507,12 @@ public class FighterController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Remove ground contact and disable jumping when no longer touching ground.
+    /// </summary>
     void OnCollisionExit2D(Collision2D collision)
     {
         if (collision.collider.isTrigger) return;
-
-        //if (collision.collider.CompareTag("wall"))
-        //{
-        //    _wallColliders.Remove(collision.collider);
-        //}
 
         if ((groundMask.value & (1 << collision.collider.gameObject.layer)) == 0) return;
 

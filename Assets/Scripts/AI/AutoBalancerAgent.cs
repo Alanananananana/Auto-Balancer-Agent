@@ -7,29 +7,27 @@ using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
 
 /// <summary>
-/// AutoBalancerAgent: an ML-Agents Agent that runs balancing iterations above the game.
-/// Each episode = apply one set of adjustments (continuous actions) to player stats,
-/// run a batch of AI-vs-AI matches, observe the resulting P1 win-rate and death-cause counts,
-/// and receive reward based on improvement toward the configured targetWinRate.
+/// ML-Agents auto-balancer that iteratively adjusts player stats to achieve a target win rate.
+/// Each episode applies stat adjustments, runs a batch of AI matches, then rewards based on improvement.
 /// Attach to a scene object and assign GameManager + both PlayerConfig assets.
 /// </summary>
 public class AutoBalancerAgent : Agent
 {
     [Header("Required")]
     public GameManager gameManager;
-    public PlayerConfig player1Config; // corresponds to P1
-    public PlayerConfig player2Config; // corresponds to P2
+    public PlayerConfig player1Config; // P1 configuration
+    public PlayerConfig player2Config; // P2 configuration
 
     [Header("Batch / Goal")]
-    [Tooltip("Number of matches to gather after applying actions for reward calculation.")]
+    [Tooltip("Number of matches to run per balancing iteration for statistical measurement.")]
     public int matchesPerBatch = 30;
-    [Tooltip("Target P1 win rate (0..1).")]
+    [Tooltip("Target P1 win rate (0..1). Agent tries to achieve this balance.")]
     public float targetWinRate = 0.5f;
-    [Tooltip("Acceptable margin (±). If P1 rate is within target ± margin, the agent receives a large positive terminal reward.")]
+    [Tooltip("Acceptable margin (±). If P1 rate is within target ± margin, large terminal reward is given.")]
     public float margin = 0.05f;
 
     [Header("Adjustment")]
-    [Tooltip("Maximum fractional change applied when action = 1. Action values are in [-1,1] and scaled by this step.")]
+    [Tooltip("Maximum fractional change applied when action = 1. Actions are in [-1,1] and scaled by this step.")]
     [Range(0.01f, 0.25f)]
     public float adjustStep = 0.05f;
 
@@ -37,7 +35,7 @@ public class AutoBalancerAgent : Agent
     public bool persistChangesToAssets = false;
 
     [Header("Reward / Penalty")]
-    [Tooltip("Small penalty proportional to magnitude of adjustments to encourage conservative edits.")]
+    [Tooltip("Small penalty proportional to magnitude of adjustments to encourage minimal changes.")]
     public float changeMagnitudePenalty = 0.01f;
 
     [Header("Debug / Output")]
@@ -45,22 +43,22 @@ public class AutoBalancerAgent : Agent
     public bool appendPerIteration = true;
 
     [Header("Agent Priority")]
-    [Tooltip("If true the agent will prioritize minimizing win-rate error (targetWinRate) over applying automatic death-cause fixes.")]
+    [Tooltip("If true, agent prioritizes win-rate error over automatic death-cause fixes.")]
     public bool prioritizeWinRate = true;
-    [Tooltip("Weight applied to the improvement term in the reward calculation (higher -> stronger win-rate focus).")]
+    [Tooltip("Weight applied to the improvement term in reward (higher = stronger win-rate focus).")]
     public float improvementWeight = 15f;
-    [Tooltip("Weight applied to the signed improvement shaping term.")]
+    [Tooltip("Weight applied to signed improvement shaping term.")]
     public float signedImprovementWeight = 0.2f;
 
-    [Tooltip("Penalty weight applied when win-rate error increases compared to previous iteration.")]
+    [Tooltip("Penalty weight when win-rate error increases compared to previous iteration.")]
     public float errorIncreasePenalty = 20f;
 
-    // Internal bookkeeping for matchmaking polling
+    // Internal bookkeeping
     private int _baselineP1Wins;
     private int _baselineP2Wins;
     private string _outputPath;
 
-    // Health subscriptions and death-type counters (per-batch)
+    // Health subscriptions and death-type counters
     private Health _p1Health;
     private Health _p2Health;
     private int _p1FallDeathsInBatch;
@@ -68,24 +66,30 @@ public class AutoBalancerAgent : Agent
     private int _p1HpDeathsInBatch;
     private int _p2HpDeathsInBatch;
 
-    // Last observed win-rate error (used to compute improvement)
+    // Last observed win-rate error for delta calculation
     private float _lastError = 1f;
 
-    // Lock to avoid re-entrancy when batch is running
+    // Lock to avoid re-entrancy during batch
     private bool _batchRunning = false;
 
     // Reward tracking for logging
     private float _lastCumulativeReward = 0f;
     private float _lastRewardDelta = 0f;
 
-    // Iteration counter for autobalancer episodes
+    // Iteration counter
     private int _iteration = 0;
 
+    /// <summary>
+    /// Unity Start: initialize output path.
+    /// </summary>
     void Start()
     {
         _outputPath = Path.Combine(Application.persistentDataPath, outputFileName);
     }
 
+    /// <summary>
+    /// Called at the start of each episode. Validates references, resets counters, subscribes to health events.
+    /// </summary>
     public override void OnEpisodeBegin()
     {
         // Validate references
@@ -96,7 +100,7 @@ public class AutoBalancerAgent : Agent
             return;
         }
 
-        // Ensure output path set in case Start() hasn't run
+        // Ensure output path set
         if (string.IsNullOrEmpty(_outputPath))
         {
             _outputPath = Path.Combine(Application.persistentDataPath, outputFileName);
@@ -108,29 +112,30 @@ public class AutoBalancerAgent : Agent
 
         SubscribeInstancesSafe();
 
-        // Baseline wins used for polling matches
+        // Capture baseline wins for polling
         _baselineP1Wins = gameManager.GetWins("P1");
         _baselineP2Wins = gameManager.GetWins("P2");
 
-        // RequestDecision to get an action to apply this episode.
+        // Request decision to get actions for this episode
         RequestDecision();
     }
 
+    /// <summary>
+    /// Collect observations: current P1 win-rate error, player stats, and death-cause counts.
+    /// </summary>
     public override void CollectObservations(VectorSensor sensor)
     {
-        // Observe current P1 win-rate estimate over last recorded wins (if any)
+        // Observe current P1 win-rate estimate
         int nowP1 = gameManager != null ? gameManager.GetWins("P1") : 0;
         int nowP2 = gameManager != null ? gameManager.GetWins("P2") : 0;
         int total = (nowP1 - _baselineP1Wins) + (nowP2 - _baselineP2Wins);
         float currentP1Rate = total > 0 ? (float)(nowP1 - _baselineP1Wins) / total : targetWinRate;
 
-        // Error to target (signed): positive means P1 > target
+        // Signed error: positive means P1 > target
         float signedError = currentP1Rate - targetWinRate;
-
-        // Normalize and add
         sensor.AddObservation(Mathf.Clamp(signedError, -1f, 1f));
 
-        // Add simple stat observations to give agent context
+        // Add stat observations for context
         if (player1Config?.stats != null)
         {
             sensor.AddObservation(NormalizeStat(player1Config.stats.attackDamageMultiplier, 0.2f, 3f));
@@ -161,7 +166,7 @@ public class AutoBalancerAgent : Agent
             sensor.AddObservation(0f);
         }
 
-        // Provide death-cause counts (normalized by matchesPerBatch)
+        // Death-cause counts (normalized by matchesPerBatch)
         sensor.AddObservation(Mathf.Clamp01((float)_p1FallDeathsInBatch / Mathf.Max(1, matchesPerBatch)));
         sensor.AddObservation(Mathf.Clamp01((float)_p1HpDeathsInBatch / Mathf.Max(1, matchesPerBatch)));
         sensor.AddObservation(Mathf.Clamp01((float)_p2FallDeathsInBatch / Mathf.Max(1, matchesPerBatch)));
@@ -181,12 +186,12 @@ public class AutoBalancerAgent : Agent
     {
         if (_batchRunning)
         {
-            // refuse to reapply changes while batch running
+            // Refuse to reapply changes while batch is running
             AddReward(-0.01f);
             return;
         }
 
-        // Count this as one autobalancer iteration (one set of edits + a measurement batch)
+        // Increment iteration counter
         _iteration++;
 
         var cont = actions.ContinuousActions;
@@ -199,7 +204,7 @@ public class AutoBalancerAgent : Agent
         float aP2AtkSpd = cont.Length > 6 ? Mathf.Clamp(cont[6], -1f, 1f) : 0f;
         float aP2MaxHp = cont.Length > 7 ? Mathf.Clamp(cont[7], -1f, 1f) : 0f;
 
-        // Convert actions -> multiplicative scales
+        // Convert actions to multiplicative scales
         float scaleP1Atk = 1f + aP1Atk * adjustStep;
         float scaleP1Kb = 1f + aP1Kb * adjustStep;
         float scaleP2Atk = 1f + aP2Atk * adjustStep;
@@ -210,7 +215,7 @@ public class AutoBalancerAgent : Agent
         float scaleP2AtkSpd = 1f + aP2AtkSpd * adjustStep;
         float scaleP2MaxHp = 1f + aP2MaxHp * adjustStep;
 
-        // Apply adjustments immediately (to stats so they persist to next spawns)
+        // Apply adjustments to stats
         AdjustAttackDamageMultiplier(player1Config, scaleP1Atk);
         AdjustKnockbackDealt(player1Config, scaleP1Kb);
         AdjustAttackDamageMultiplier(player2Config, scaleP2Atk);
@@ -242,10 +247,12 @@ public class AutoBalancerAgent : Agent
     public override void Heuristic(in ActionBuffers actionsOut)
     {
         var cont = actionsOut.ContinuousActions;
-        // No-op heuristic (zero => no change)
         for (int i = 0; i < cont.Length; i++) cont[i] = 0f;
     }
 
+    /// <summary>
+    /// Run a batch of matches, measure P1 win-rate, compute reward based on improvement, then end episode.
+    /// </summary>
     IEnumerator RunBatchAndAssignReward()
     {
         _batchRunning = true;
@@ -257,11 +264,11 @@ public class AutoBalancerAgent : Agent
         int batchWinsP1 = 0;
         int batchWinsP2 = 0;
 
-        // Refresh baseline so we only count wins that occur during this batch
+        // Refresh baseline
         int waitStartP1 = gameManager.GetWins("P1");
         int waitStartP2 = gameManager.GetWins("P2");
 
-        // Capture cumulative reward before measurement so we can compute delta for logging
+        // Capture cumulative reward before measurement
         float beforeReward = GetCumulativeReward();
 
         // Run matchesPerBatch matches
@@ -281,14 +288,14 @@ public class AutoBalancerAgent : Agent
             waitStartP1 = nowP1;
             waitStartP2 = nowP2;
 
-            // small yield to allow spawns to refresh and health subscriptions to re-bind
+            // Small yield to allow spawns and subscriptions to refresh
             yield return new WaitForSeconds(Mathf.Clamp(gameManager != null ? gameManager.respawnDelay + 0.01f : 0.1f, 0.01f, 5f));
         }
 
         int total = batchWinsP1 + batchWinsP2;
         if (total == 0)
         {
-            // no data: small negative reward and end
+            // No data: small negative reward
             AddReward(-0.1f);
             float afterRewardNoData = GetCumulativeReward();
             _lastRewardDelta = afterRewardNoData - beforeReward;
@@ -302,7 +309,7 @@ public class AutoBalancerAgent : Agent
         float error = Mathf.Abs(batchP1Rate - targetWinRate);
         float signedError = batchP1Rate - targetWinRate;
 
-        // NEW: detect if stage knockouts dominate and apply conservative global bias toward making HP matter
+        // Detect if stage knockouts dominate and apply conservative global bias
         int totalDeaths = _p1FallDeathsInBatch + _p2FallDeathsInBatch + _p1HpDeathsInBatch + _p2HpDeathsInBatch;
         float fallFraction = 0f;
         if (totalDeaths > 0)
@@ -310,11 +317,10 @@ public class AutoBalancerAgent : Agent
             fallFraction = (float)(_p1FallDeathsInBatch + _p2FallDeathsInBatch) / totalDeaths;
             if (fallFraction >= 0.6f)
             {
-                // If user asked to prioritize win-rate, skip the automatic HP-focused corrective edits.
+                // If prioritizing win-rate, skip automatic HP-focused corrections
                 if (!prioritizeWinRate)
                 {
-                    //Debug.Log($"[AutoBalancerAgent][Iter {_iteration}] High fall-rate detected ({fallFraction:P1}). Applying conservative HP-focused bias: decrease maxHp and increase damage on both fighters.");
-                    // Decrease maxHp slightly and increase attack damage slightly for both players to make HP more relevant.
+                    // Decrease maxHp and increase damage to make HP more relevant
                     AdjustMaxHp(player1Config, 1f - adjustStep);
                     AdjustMaxHp(player2Config, 1f - adjustStep);
                     AdjustAttackDamageMultiplier(player1Config, 1f + adjustStep);
@@ -329,23 +335,20 @@ public class AutoBalancerAgent : Agent
 #endif
                 }
 
-                // Always append an iteration snapshot so training logs include the fall fraction context.
+                // Always log iteration snapshot
                 if (appendPerIteration) AppendUpdatedStatsSnapshot(batchP1Rate, false, fallFraction, _iteration);
             }
         }
 
-        // Reward = improvement in error relative to previous error (positive if closer to target).
-        // Use configurable weights so we can prioritize pure win-rate improvement.
-        //AddReward((1f - error) * improvementWeight);
-        // Use delta-based improvement reward (positive when error decreased compared to last iteration)
+        // Reward based on improvement in error
         float improvementDelta = _lastError - error;
         AddReward(improvementDelta * improvementWeight);
 
-        // Small shaping: reward moving signed error toward 0 (sign-sensitive).
+        // Small shaping: reward moving signed error toward 0
         float signedImprovement = Mathf.Sign(targetWinRate - batchP1Rate) * Mathf.Clamp(1f - error, 0f, 1f);
         AddReward(signedImprovement * signedImprovementWeight);
 
-        // Penalize increases in error to discourage edits that make balance worse
+        // Penalize increases in error
         if (error > _lastError)
         {
             float increase = error - _lastError;
@@ -356,7 +359,6 @@ public class AutoBalancerAgent : Agent
         if (error <= margin)
         {
             AddReward(2.0f);
-            // Optionally persist final snapshot
             float afterRewardFinal = GetCumulativeReward();
             _lastRewardDelta = afterRewardFinal - beforeReward;
             _lastCumulativeReward = afterRewardFinal;
@@ -367,16 +369,16 @@ public class AutoBalancerAgent : Agent
             yield break;
         }
 
-        // If not terminal, small negative for oscillation (optional). Log snapshot.
+        // Log snapshot if not terminal
         if (appendPerIteration) AppendUpdatedStatsSnapshot(batchP1Rate, false, fallFraction, _iteration);
 
-        // Update last error for next episode
+        // Update last error
         _lastError = error;
 
-        // Small time penalty to prefer faster convergence
+        // Small time penalty
         AddReward(-0.01f);
 
-        // Compute final reward delta for logging
+        // Compute final reward delta
         float afterReward = GetCumulativeReward();
         _lastRewardDelta = afterReward - beforeReward;
         _lastCumulativeReward = afterReward;
@@ -385,7 +387,9 @@ public class AutoBalancerAgent : Agent
         _batchRunning = false;
     }
 
-    // Polling helper: wait until either P1 or P2 wins increases
+    /// <summary>
+    /// Poll until either P1 or P2 wins increase (match end detected).
+    /// </summary>
     IEnumerator WaitForMatchEnd(int startP1, int startP2)
     {
         while (true)
@@ -394,12 +398,13 @@ public class AutoBalancerAgent : Agent
             int nowP2 = gameManager.GetWins("P2");
             if (nowP1 > startP1 || nowP2 > startP2) yield break;
             SubscribeInstancesSafe();
-            // Poll every frame instead of waiting 50ms — reduces added latency when respawnDelay is zero.
             yield return null;
         }
     }
 
-    // --- Subscriptions & death detection (copied/adapted from AutoBalancer) ---
+    /// <summary>
+    /// Subscribe to Health instances for death-cause tracking. Safe to call repeatedly.
+    /// </summary>
     void SubscribeInstancesSafe()
     {
         if (_p1Health != null && _p2Health != null) return;
@@ -439,6 +444,9 @@ public class AutoBalancerAgent : Agent
         }
     }
 
+    /// <summary>
+    /// Unsubscribe from all health instances.
+    /// </summary>
     void UnsubscribeInstances()
     {
         if (_p1Health != null)
@@ -455,6 +463,9 @@ public class AutoBalancerAgent : Agent
         }
     }
 
+    /// <summary>
+    /// Subscribe to P1 health events.
+    /// </summary>
     void SubscribeP1(Health h)
     {
         if (h == null) return;
@@ -467,9 +478,11 @@ public class AutoBalancerAgent : Agent
         _p1Health = h;
         _p1Health.OnDamaged += OnP1Damaged;
         _p1Health.OnDeath += OnP1Death;
-        //Debug.Log($"[AutoBalancerAgent] Subscribed to P1 health on '{h.gameObject.name}'.");
     }
 
+    /// <summary>
+    /// Subscribe to P2 health events.
+    /// </summary>
     void SubscribeP2(Health h)
     {
         if (h == null) return;
@@ -482,37 +495,48 @@ public class AutoBalancerAgent : Agent
         _p2Health = h;
         _p2Health.OnDamaged += OnP2Damaged;
         _p2Health.OnDeath += OnP2Death;
-        //Debug.Log($"[AutoBalancerAgent] Subscribed to P2 health on '{h.gameObject.name}'.");
     }
 
     void OnP1Damaged(float remainingHp)
     {
-        // counts can be expanded if needed (currently only death causes are used)
+        // Reserved for future use
     }
 
     void OnP2Damaged(float remainingHp)
     {
+        // Reserved for future use
     }
 
+    /// <summary>
+    /// Track P1 death cause (fall vs HP).
+    /// </summary>
     void OnP1Death()
     {
         bool fell = DidFall(_p1Health);
         if (fell) _p1FallDeathsInBatch++; else _p1HpDeathsInBatch++;
     }
 
+    /// <summary>
+    /// Track P2 death cause (fall vs HP).
+    /// </summary>
     void OnP2Death()
     {
         bool fell = DidFall(_p2Health);
         if (fell) _p2FallDeathsInBatch++; else _p2HpDeathsInBatch++;
     }
 
+    /// <summary>
+    /// Check if a fighter died by falling below the fallDeathY threshold.
+    /// </summary>
     bool DidFall(Health h)
     {
         if (h == null || h.gameObject == null || gameManager == null) return false;
         return h.gameObject.transform.position.y <= gameManager.fallDeathY;
     }
 
-    // --- Stat adjustment helpers (copied/adapted) ---
+    /// <summary>
+    /// Adjust attackDamageMultiplier for a player config, clamping to per-class limits.
+    /// </summary>
     void AdjustAttackDamageMultiplier(PlayerConfig cfg, float scale)
     {
         if (cfg == null || cfg.stats == null) return;
@@ -522,9 +546,11 @@ public class AutoBalancerAgent : Agent
         float next = Mathf.Clamp(old * scale, 0.2f, max);
         cfg.stats.attackDamageMultiplier = next;
         cfg.stats.Normalize();
-        //Debug.Log($"[AutoBalancerAgent] {cfg.name}: attackDamageMultiplier {old:F3} -> {next:F3}");
     }
 
+    /// <summary>
+    /// Adjust knockbackDealtMultiplier for a player config.
+    /// </summary>
     void AdjustKnockbackDealt(PlayerConfig cfg, float scale)
     {
         if (cfg == null || cfg.stats == null) return;
@@ -535,9 +561,11 @@ public class AutoBalancerAgent : Agent
         float next = Mathf.Clamp(old * scale, min, max);
         cfg.stats.knockbackDealtMultiplier = next;
         cfg.stats.Normalize();
-        //Debug.Log($"[AutoBalancerAgent] {cfg.name}: knockbackDealtMultiplier {old:F3} -> {next:F3}");
     }
 
+    /// <summary>
+    /// Adjust attackSpeed for a player config and apply to live instance.
+    /// </summary>
     void AdjustAttackSpeed(PlayerConfig cfg, float scale)
     {
         if (cfg == null || cfg.stats == null) return;
@@ -547,12 +575,13 @@ public class AutoBalancerAgent : Agent
         float old = cfg.stats.attackSpeed;
         float next = Mathf.Clamp(old * scale, min, max);
         cfg.stats.attackSpeed = next;
-        // apply to any live instance
         ApplyInstanceStatsIfPresent(cfg);
         cfg.stats.Normalize();
-        //Debug.Log($"[AutoBalancerAgent] {cfg.name}: attackSpeed {old:F3} -> {next:F3}");
     }
 
+    /// <summary>
+    /// Adjust moveSpeed for a player config and apply to live instance.
+    /// </summary>
     void AdjustMoveSpeed(PlayerConfig cfg, float scale)
     {
         if (cfg == null || cfg.stats == null) return;
@@ -564,20 +593,22 @@ public class AutoBalancerAgent : Agent
         cfg.stats.moveSpeed = next;
         ApplyInstanceStatsIfPresent(cfg);
         cfg.stats.Normalize();
-        //Debug suppressed
     }
 
+    /// <summary>
+    /// Adjust maxHp for a player config and apply to live instance (with full heal).
+    /// </summary>
     void AdjustMaxHp(PlayerConfig cfg, float scale)
     {
         if (cfg == null || cfg.stats == null) return;
         bool heavy = IsHeavy(cfg);
-        // per-class HP floor/cap
         float min = heavy ? 100f : 50f;
         float max = heavy ? 800f : 500f;
         float old = cfg.stats.maxHp;
         float next = Mathf.Clamp(old * scale, min, max);
         cfg.stats.maxHp = next;
-        //Apply immediate effect to currently subscribed instances so changes are visible without waiting for respawn
+
+        // Apply immediate effect to live instances
         if (cfg == player1Config && _p1Health != null)
         {
             _p1Health.maxHp = next;
@@ -589,86 +620,62 @@ public class AutoBalancerAgent : Agent
             _p2Health.HealFull();
         }
 
-        // Ensure the per-class clamps are satisfied
         cfg.stats.Normalize();
-
-        // Enforce cross-class relationship: Default.maxHp <= 75% * Heavy.maxHp (if both present)
         EnforceHpRatio();
-
-        //Debug.Log($"[AutoBalancerAgent] {cfg.name}: maxHp {old:F3} -> {next:F3}");
     }
 
-    //// Helper: apply small class-role bias nudges
-    //void ApplyClassBias(PlayerConfig cfg, float biasFactor)
-    //{
-    //    if (cfg == null || cfg.stats == null) return;
-    //    if (IsHeavy(cfg))
-    //    {
-    //        // Favor heavier role: slightly more HP and knockback
-    //        AdjustMaxHp(cfg, 1f + biasFactor);
-    //        AdjustKnockbackDealt(cfg, 1f + biasFactor);
-    //    }
-    //    else
-    //    {
-    //        // Default fighters: favor attack speed and move speed
-    //        AdjustAttackSpeed(cfg, 1f + biasFactor);
-    //        AdjustMoveSpeed(cfg, 1f + biasFactor);
-    //    }
-    //}
-
+    /// <summary>
+    /// Check if a PlayerConfig uses HeavyFighterStats.
+    /// </summary>
     bool IsHeavy(PlayerConfig cfg)
     {
         if (cfg == null || cfg.stats == null) return false;
         return cfg.stats is HeavyFighterStats;
     }
 
-    // Ensure that when both player configs exist, the Default fighter's HP is never more than 75% of Heavy's.
-    // If necessary, this will raise heavy HP to satisfy the relationship (but never below heavy minimum).
+    /// <summary>
+    /// Enforce cross-class HP ratio: Default maxHp should not exceed Heavy maxHp.
+    /// Also enforces attack/knockback/speed cross-class constraints.
+    /// </summary>
     private void EnforceHpRatio()
     {
         if (player1Config == null || player2Config == null) return;
         if (player1Config.stats == null || player2Config.stats == null) return;
 
-        // Identify heavy vs default (if both heavy or both default, nothing to enforce)
+        // Identify heavy vs default
         PlayerConfig heavyCfg = IsHeavy(player1Config) ? player1Config : (IsHeavy(player2Config) ? player2Config : null);
         PlayerConfig defaultCfg = (!IsHeavy(player1Config)) ? player1Config : ((!IsHeavy(player2Config)) ? player2Config : null);
 
         if (heavyCfg == null || defaultCfg == null) return;
 
-        // Local short-hands
         var heavyStats = heavyCfg.stats;
         var defStats = defaultCfg.stats;
 
-        // Enforce minima first
+        // Enforce minima
         heavyStats.maxHp = Mathf.Max(heavyStats.maxHp, 100f);
         defStats.maxHp = Mathf.Max(defStats.maxHp, 50f);
 
-        // --- Cross-class constraints ---
-
-        // 1) Ensure default's maxHp is not greater than heavy's maxHp.
-        //    If it is, raise heavy to match default (prefer preserving relative designer intent).
+        // Cross-class constraints
+        // 1) Ensure default's maxHp <= heavy's maxHp
         if (defStats.maxHp > heavyStats.maxHp)
         {
             heavyStats.maxHp = Mathf.Clamp(defStats.maxHp, 100f, 800f);
         }
 
-        // 2) Ensure default's attackDamageMultiplier <= heavy's attackDamageMultiplier.
-        //    If default exceeds heavy, raise heavy to match default.
+        // 2) Ensure default's attackDamageMultiplier <= heavy's
         if (defStats.attackDamageMultiplier > heavyStats.attackDamageMultiplier)
         {
             heavyStats.attackDamageMultiplier = Mathf.Clamp(defStats.attackDamageMultiplier, 0.2f, 2.0f);
         }
 
-        // 3) Ensure default's knockbackDealtMultiplier <= heavy's knockbackDealtMultiplier.
+        // 3) Ensure default's knockbackDealtMultiplier <= heavy's
         if (defStats.knockbackDealtMultiplier > heavyStats.knockbackDealtMultiplier)
         {
             heavyStats.knockbackDealtMultiplier = Mathf.Clamp(defStats.knockbackDealtMultiplier, 0.3f, 2.0f);
         }
 
-        // 4) Ensure heavy's attackSpeed does not exceed half of the default's attackSpeed.
-        //    If heavy is too fast, cap it to 50% of default's attackSpeed (respecting heavy bounds).
+        // 4) Ensure heavy's attackSpeed <= 50% of default's
         float maxAllowedHeavyAttackSpeed = defStats.attackSpeed * 0.5f;
-        // Determine heavy bounds for attackSpeed
         float heavyMin = 0.5f;
         float heavyMax = 1.0f;
         float cappedHeavy = Mathf.Clamp(heavyStats.attackSpeed, heavyMin, heavyMax);
@@ -677,23 +684,27 @@ public class AutoBalancerAgent : Agent
             heavyStats.attackSpeed = Mathf.Clamp(maxAllowedHeavyAttackSpeed, heavyMin, heavyMax);
         }
 
-        // Apply per-class Normalize to enforce per-field bounds and sanitization
+        // Apply per-class normalization
         heavyStats.Normalize();
         defStats.Normalize();
 
-        // Apply to instances if present
+        // Apply to live instances
         ApplyInstanceStatsIfPresent(player1Config);
         ApplyInstanceStatsIfPresent(player2Config);
     }
 
-    // --- Utilities: normalization, file output, editor persistence ---
+    /// <summary>
+    /// Normalize a stat value to [-1, 1] range for observations.
+    /// </summary>
     float NormalizeStat(float val, float min, float max)
     {
-        // map to [-1,1], protect against div by zero
         float denom = Mathf.Max(1e-6f, max - min);
         return Mathf.Clamp01((val - min) / denom) * 2f - 1f;
     }
 
+    /// <summary>
+    /// Append a stats snapshot to the output file for logging.
+    /// </summary>
     void AppendUpdatedStatsSnapshot(float p1Rate, bool isFinal, float fallFraction, int iteration)
     {
         try
@@ -708,9 +719,6 @@ public class AutoBalancerAgent : Agent
             content += $"  last_reward_delta = {_lastRewardDelta:F4}\n";
             content += new string('-', 60) + "\n";
             File.AppendAllText(_outputPath, content);
-
-            // Also print concise line to console for quick inspection
-            //Debug.Log($"[AutoBalancerAgent][Iter {iteration}] p1_rate={p1Rate:F3} fall%={fallFraction:P1} reward_delta={_lastRewardDelta:F4}");
         }
         catch (Exception ex)
         {
@@ -718,6 +726,9 @@ public class AutoBalancerAgent : Agent
         }
     }
 
+    /// <summary>
+    /// Format a PlayerConfig's stats as a string for logging.
+    /// </summary>
     string FormatStatsSnapshot(string header, PlayerConfig cfg)
     {
         if (cfg == null) return $"{header}\n  <PlayerConfig null>\n";
@@ -727,6 +738,9 @@ public class AutoBalancerAgent : Agent
     }
 
 #if UNITY_EDITOR
+    /// <summary>
+    /// Persist ScriptableObject changes to disk (Editor only).
+    /// </summary>
     void TrySaveAsset(ScriptableObject so)
     {
         if (so == null) return;
@@ -743,12 +757,17 @@ public class AutoBalancerAgent : Agent
     }
 #endif
 
+    /// <summary>
+    /// Clean up subscriptions on destroy.
+    /// </summary>
     void OnDestroy()
     {
         UnsubscribeInstances();
     }
 
-    // Apply derived stats immediately to a live FighterController instance if present for the given PlayerConfig.
+    /// <summary>
+    /// Apply updated stats immediately to a live FighterController instance if present.
+    /// </summary>
     void ApplyInstanceStatsIfPresent(PlayerConfig cfg)
     {
         if (cfg == null) return;
@@ -758,7 +777,6 @@ public class AutoBalancerAgent : Agent
             var fc = _p1Health.GetComponent<FighterController>();
             if (fc != null)
             {
-                // Ensure the live instance uses the updated PlayerConfig.stats reference so multipliers (knockback etc.) take effect immediately.
                 fc.stats = cfg.stats;
                 fc.ApplyStats();
             }

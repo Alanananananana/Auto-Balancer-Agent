@@ -2,6 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Hitbox component attached to weapon/attack collider.
+/// Applies damage and knockback to hurtbox targets on trigger enter.
+/// Respects blocking for damage and knockback reduction.
+/// Uses owner's and victim's stat multipliers for damage and knockback calculation.
+/// </summary>
 [RequireComponent(typeof(BoxCollider2D))]
 public class Hitbox : MonoBehaviour
 {
@@ -11,29 +17,35 @@ public class Hitbox : MonoBehaviour
     public Transform owner;
     private BoxCollider2D _col;
 
-
+    /// <summary>
+    /// Initialize hitbox as trigger, disable by default (enabled during attack active frames).
+    /// </summary>
     void Awake()
     {
         _col = GetComponent<BoxCollider2D>();
         _col.isTrigger = true;
-        gameObject.SetActive(false); // enable only during active frames
+        gameObject.SetActive(false);
     }
 
-
+    /// <summary>
+    /// Apply damage and knockback when hitting a valid hurtbox target.
+    /// Respects blocking for damage/knockback reduction and applies stat multipliers from both fighters.
+    /// </summary>
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (owner && other.transform.IsChildOf(owner)) return; // ignore self
+        // Ignore self
+        if (owner && other.transform.IsChildOf(owner)) return;
 
-        // If the mask is non-zero, enforce it. If it's zero, treat as "match all".
+        // Enforce layer mask (if set)
         if (hurtboxLayers.value != 0 && (((1 << other.gameObject.layer) & hurtboxLayers.value) == 0)) return;
 
         var hurt = other.GetComponentInParent<Health>();
         if (!hurt) return;
 
-        // If target already dead or invulnerable, ignore
+        // Ignore dead or invulnerable targets
         if (hurt.currentHp <= 0f) return;
 
-        // Check for blocking first so we apply reduced damage once.
+        // Check for blocking and apply damage reduction
         var fc = other.GetComponentInParent<FighterController>();
         float appliedDamage = damage;
         if (fc && fc.Blocking) appliedDamage *= (1f - fc.stats.blockDamageReduction);
@@ -43,14 +55,11 @@ public class Hitbox : MonoBehaviour
         var rb = other.GetComponentInParent<Rigidbody2D>();
         if (rb)
         {
-            // Determine facing/sign to compute knockback direction.
-            // Use the attacker's visual facing if available (visual is what we flip),
-            // otherwise fall back to owner's localScale sign, then to this transform as last resort.
+            // Determine knockback direction from attacker's visual facing
             float dir = 1f;
 
             if (owner != null)
             {
-                // Prefer FighterController.visual if present
                 var ownerFc = owner.GetComponent<FighterController>();
                 if (ownerFc != null && ownerFc.visual != null)
                 {
@@ -66,11 +75,10 @@ public class Hitbox : MonoBehaviour
                 dir = Mathf.Sign(transform.localScale.x);
             }
 
-            // Compute effective knockback using attacker's and victim's stats
-            // Start with weapon-defined knockback (this.knockback)
+            // Compute effective knockback using stat multipliers
             Vector2 effectiveKb = knockback;
 
-            // Attacker multiplier (if owner has FighterController)
+            // Attacker multiplier
             FighterController ownerFcRef = null;
             if (owner != null)
             {
@@ -81,13 +89,13 @@ public class Hitbox : MonoBehaviour
                 }
             }
 
-            // Victim taken multiplier (if victim has FighterController)
+            // Victim taken multiplier
             if (fc != null && fc.stats != null)
             {
                 effectiveKb *= fc.stats.knockbackTakenMultiplier;
             }
 
-            // If blocking, apply additional knockback reduction from target's knockbackResistance
+            // Blocking knockback reduction
             float kbMultiplier = 1f;
             if (fc != null && fc.Blocking)
             {

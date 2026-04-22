@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Human keyboard input mapped to IFighterInput for local control and debugging.
+/// Human keyboard input provider implementing IFighterInput.
+/// Maps KeyCodes to movement, jump, attack, and block actions for local control and debugging.
 /// </summary>
 public class HumanInput : MonoBehaviour, IFighterInput
 {
@@ -20,6 +21,9 @@ public class HumanInput : MonoBehaviour, IFighterInput
     public bool AttackPressed { get; private set; }
     public bool BlockHeld { get; private set; }
 
+    /// <summary>
+    /// Sample input every frame and update IFighterInput state.
+    /// </summary>
     void Update()
     {
         _move = 0f;
@@ -29,10 +33,10 @@ public class HumanInput : MonoBehaviour, IFighterInput
         AttackPressed = Input.GetKeyDown(attack);
         BlockHeld = Input.GetKey(block);
         
-        // TEMPORARY DEBUG
+        // TEMPORARY DEBUG (remove in production)
         if (_move != 0f || JumpPressed || AttackPressed)
         {
-            Debug.Log($"[HumanInput] _move={_move} jump={JumpPressed} attack={AttackPressed} left={left} right={right}");
+            //Debug.Log($"[HumanInput] _move={_move} jump={JumpPressed} attack={AttackPressed} left={left} right={right}");
         }
     }
 }
